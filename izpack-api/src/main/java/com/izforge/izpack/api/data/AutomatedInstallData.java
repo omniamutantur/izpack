@@ -1,5 +1,5 @@
 /*
- * IzPack - Copyright 2001-2008 Julien Ponge, All Rights Reserved.
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
@@ -590,26 +590,37 @@ public class AutomatedInstallData implements InstallData
         this.dynamicvariables = dynamicvariables;
     }
 
-    @Override
-    public List<DynamicInstallerRequirementValidator> getDynamicinstallerrequirements()
+    public List<DynamicInstallerRequirementValidator> getDynamicInstallerRequirements()
     {
         return this.dynamicinstallerrequirements;
     }
 
-    public void setDynamicinstallerrequirements(List<DynamicInstallerRequirementValidator> dynamicinstallerrequirements)
+    @Deprecated
+    public List<DynamicInstallerRequirementValidator> getDynamicinstallerrequirements()
     {
-        this.dynamicinstallerrequirements = dynamicinstallerrequirements;
+        return getDynamicInstallerRequirements();
     }
 
-    public void setInstallerrequirements(List<InstallerRequirement> installerrequirements)
+    public void setDynamicInstallerRequirements(List<DynamicInstallerRequirementValidator> requirements)
     {
-        this.installerrequirements = installerrequirements;
+        this.dynamicinstallerrequirements = requirements;
+    }
+
+    public void setInstallerRequirements(List<InstallerRequirement> requirements)
+    {
+        this.installerrequirements = requirements;
     }
 
     @Override
-    public List<InstallerRequirement> getInstallerrequirements()
+    public List<InstallerRequirement> getInstallerRequirements()
     {
         return installerrequirements;
+    }
+
+    @Deprecated
+    public List<InstallerRequirement> getInstallerrequirements()
+    {
+        return getInstallerRequirements();
     }
 
     @Deprecated

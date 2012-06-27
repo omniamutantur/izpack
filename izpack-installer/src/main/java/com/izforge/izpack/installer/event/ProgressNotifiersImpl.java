@@ -1,9 +1,30 @@
+/*
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
+ *
+ * http://izpack.org/
+ * http://izpack.codehaus.org/
+ *
+ * Copyright 2012 Tim Anderson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.izforge.izpack.installer.event;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.izforge.izpack.api.event.InstallListener;
+import com.izforge.izpack.api.event.InstallerListener;
 import com.izforge.izpack.api.event.ProgressListener;
 import com.izforge.izpack.api.event.ProgressNotifiers;
 
@@ -19,7 +40,7 @@ public class ProgressNotifiersImpl implements ProgressNotifiers
     /**
      * The listeners that may perform progress notification.
      */
-    private List<InstallListener> listeners = new ArrayList<InstallListener>();
+    private List<InstallerListener> listeners = new ArrayList<InstallerListener>();
 
     /**
      * Determines if the listeners should notify the progress listener.
@@ -32,19 +53,19 @@ public class ProgressNotifiersImpl implements ProgressNotifiers
      * @param listener the listener
      */
     @Override
-    public void addNotifier(InstallListener listener)
+    public void addNotifier(InstallerListener listener)
     {
         listeners.add(listener);
     }
 
     /**
-     * Retursn the index of the specified listener.
+     * Returns the index of the specified listener.
      *
      * @param listener the listener
      * @return the index of the listener or {@code -1} if it is not registered
      */
     @Override
-    public int indexOf(InstallListener listener)
+    public int indexOf(InstallerListener listener)
     {
         return listeners.indexOf(listener);
     }

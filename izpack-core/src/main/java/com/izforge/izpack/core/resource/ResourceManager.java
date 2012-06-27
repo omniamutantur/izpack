@@ -1,10 +1,11 @@
 /*
- * IzPack - Copyright 2001-2008 Julien Ponge, All Rights Reserved.
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
  *
  * Copyright 2002 Marcus Stursberg
+ * Copyright 2012 Tim Anderson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +27,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 
 import javax.swing.ImageIcon;
 
@@ -47,6 +47,7 @@ import com.izforge.izpack.api.resource.Locales;
  * <p/>
  *
  * @author Marcus Stursberg
+ * @author Tim Anderson
  */
 public class ResourceManager extends AbstractResources
 {
@@ -68,21 +69,18 @@ public class ResourceManager extends AbstractResources
 
     /**
      * Constructs a <tt>ResourceManager</tt>.
-     *
-     * @param properties the properties
      */
-    public ResourceManager(Properties properties)
+    public ResourceManager()
     {
-        this(properties, ClassLoader.getSystemClassLoader());
+        this(ClassLoader.getSystemClassLoader());
     }
 
     /**
      * Constructs a <tt>ResourceManager</tt>.
      *
-     * @param properties the properties
      * @param loader     the class loader to use to load resources
      */
-    public ResourceManager(Properties properties, ClassLoader loader)
+    public ResourceManager(ClassLoader loader)
     {
         super(loader);
     }

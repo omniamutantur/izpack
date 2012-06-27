@@ -1,3 +1,24 @@
+/*
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
+ *
+ * http://izpack.org/
+ * http://izpack.codehaus.org/
+ *
+ * Copyright 2012 Tim Anderson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.izforge.izpack.uninstaller.event;
 
 import java.io.File;
@@ -9,6 +30,7 @@ import com.izforge.izpack.api.event.UninstallerListener;
 import com.izforge.izpack.api.exception.IzPackException;
 import com.izforge.izpack.api.handler.Prompt;
 import com.izforge.izpack.core.handler.ProgressHandler;
+import com.izforge.izpack.event.SimpleUninstallerListener;
 
 
 /**
@@ -60,6 +82,19 @@ public class UninstallerListeners
     }
 
     /**
+     * Initialises the listeners.
+     *
+     * @throws IzPackException for any error
+     */
+    public void initialise()
+    {
+        for (UninstallerListener listener : listeners)
+        {
+            listener.initialise();
+        }
+    }
+
+    /**
      * Invoked before files are deleted.
      *
      * @param files    all files which should be deleted
@@ -73,7 +108,11 @@ public class UninstallerListeners
         {
             try
             {
-                l.beforeDeletion(files, handler);
+                if (listener instanceof SimpleUninstallerListener)
+                {
+                    ((SimpleUninstallerListener) listener).setHandler(handler);
+                }
+                l.beforeDelete(files);
             }
             catch (IzPackException exception)
             {
@@ -105,18 +144,11 @@ public class UninstallerListeners
             {
                 if (l.isFileListener())
                 {
-                    try
+                    if (listener instanceof SimpleUninstallerListener)
                     {
-                        l.beforeDelete(file, handler);
+                        ((SimpleUninstallerListener) listener).setHandler(handler);
                     }
-                    catch (IzPackException exception)
-                    {
-                        throw exception;
-                    }
-                    catch (Throwable exception)
-                    {
-                        throw new IzPackException(exception);
-                    }
+                    l.beforeDelete(file);
                 }
             }
         }
@@ -141,18 +173,11 @@ public class UninstallerListeners
             {
                 if (l.isFileListener())
                 {
-                    try
+                    if (listener instanceof SimpleUninstallerListener)
                     {
-                        l.afterDelete(file, handler);
+                        ((SimpleUninstallerListener) listener).setHandler(handler);
                     }
-                    catch (IzPackException exception)
-                    {
-                        throw exception;
-                    }
-                    catch (Throwable exception)
-                    {
-                        throw new IzPackException(exception);
-                    }
+                    l.afterDelete(file);
                 }
             }
         }
@@ -172,7 +197,11 @@ public class UninstallerListeners
         {
             try
             {
-                l.afterDeletion(files, handler);
+                if (listener instanceof SimpleUninstallerListener)
+                {
+                    ((SimpleUninstallerListener) listener).setHandler(handler);
+                }
+                l.afterDelete(files, listener);
             }
             catch (IzPackException exception)
             {

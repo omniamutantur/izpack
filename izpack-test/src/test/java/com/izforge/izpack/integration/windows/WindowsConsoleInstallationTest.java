@@ -1,3 +1,24 @@
+/*
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
+ *
+ * http://izpack.org/
+ * http://izpack.codehaus.org/
+ *
+ * Copyright 2012 Tim Anderson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.izforge.izpack.integration.windows;
 
 import static com.izforge.izpack.integration.windows.WindowsHelper.registryDeleteUninstallKey;
@@ -46,7 +67,6 @@ import com.izforge.izpack.util.PrivilegedRunner;
  * installation</li>
  * <li>The <em>Uninstall</em> entry is removed at uninstallation by {@link RegistryUninstallerListener}</li>
  * </ul>
- * N
  *
  * @author Tim Anderson
  */
@@ -228,36 +248,38 @@ public class WindowsConsoleInstallationTest extends AbstractConsoleInstallationT
     }
 
     /**
-    * Runs the console installer against a script with an alternative uninstaller name and
-    * path, verifying that the correct uninstall JAR and registry value are created.
-    * 
-    * @throws Exception for any error
-    */
-   @Test
-   @InstallFile("samples/windows/consoleinstall_alt_uninstall.xml")
-   public void testNonDefaultUninstaller() throws Exception
-   {
-       assertFalse(registryKeyExists(handler, DEFAULT_UNINSTALL_KEY));
+     * Runs the console installer against a script with an alternative uninstaller name and
+     * path, verifying that the correct uninstall JAR and registry value are created.
+     *
+     * @throws Exception for any error
+     */
+    @Test
+    @InstallFile("samples/windows/consoleinstall_alt_uninstall.xml")
+    public void testNonDefaultUninstaller() throws Exception
+    {
+        assertFalse(registryKeyExists(handler, DEFAULT_UNINSTALL_KEY));
 
-       TestConsole console = installer.getConsole();
-       console.addScript("CheckedHelloPanel", "1");
-       console.addScript("InfoPanel", "1");
-       console.addScript("TargetPanel", "\n", "1");
+        TestConsole console = installer.getConsole();
+        console.addScript("CheckedHelloPanel", "1");
+        console.addScript("InfoPanel", "1");
+        console.addScript("TargetPanel", "\n", "1");
 
-       //run installer and check that default uninstaller doesn't exist
-       checkInstall(installer, getInstallData(), false);
-             
-       //check that uninstaller exists as specified in install spec
-       String installPath = getInstallData().getInstallPath();
-       assertTrue(new File(installPath, "/uninstallme.jar").exists());
-       
-       //check that the registry key has the correct value
-       assertTrue(registryKeyExists(handler, DEFAULT_UNINSTALL_KEY));        
-   	   registryValueStringEquals(handler, DEFAULT_UNINSTALL_KEY, UNINSTALL_CMD_VALUE, 
-   			   "\"" + getInstallData().getVariable("JAVA_HOME") + "\\bin\\javaw.exe\" -jar \"" + installPath + "\\uninstallme.jar\"");
-   }
+        //run installer and check that default uninstaller doesn't exist
+        InstallData installData = getInstallData();
+        checkInstall(installer, installData, false);
 
-   /**
+        //check that uninstaller exists as specified in install spec
+        String installPath = installData.getInstallPath();
+        assertTrue(new File(installPath, "/uninstallme.jar").exists());
+
+        //check that the registry key has the correct value
+        assertTrue(registryKeyExists(handler, DEFAULT_UNINSTALL_KEY));
+        String command = "\"" + installData.getVariable("JAVA_HOME") + "\\bin\\javaw.exe\" -jar \"" + installPath
+                + "\\uninstallme.jar\"";
+        registryValueStringEquals(handler, DEFAULT_UNINSTALL_KEY, UNINSTALL_CMD_VALUE, command);
+    }
+
+    /**
      * Runs the installation, and verifies the uninstall key is created.
      *
      * @throws NativeLibException for any native library exception

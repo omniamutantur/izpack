@@ -1,10 +1,11 @@
 /*
- * IzPack - Copyright 2001-2008 Julien Ponge, All Rights Reserved.
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
  *
  * Copyright 2007 Dennis Reil
+ * Copyright 2012 Tim Anderson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -480,7 +481,7 @@ public abstract class UnpackerBase implements IUnpacker
             dir = target.getParentFile();
         }
 
-        createDirectory(dir, file);
+        createDirectory(dir, file, pack);
 
         // Add path to the log
         getUninstallData().addFile(path, pack.isUninstall());
@@ -490,7 +491,7 @@ public abstract class UnpackerBase implements IUnpacker
             return;
         }
 
-        listeners.beforeFile(target, file);
+        listeners.beforeFile(target, file, pack);
 
         listener.progress(fileNo, path);
 
@@ -553,7 +554,7 @@ public abstract class UnpackerBase implements IUnpacker
 
             if (!unpacker.isQueued())
             {
-                listeners.afterFile(target, file);
+                listeners.afterFile(target, file, pack);
             }
         }
         finally
@@ -788,9 +789,10 @@ public abstract class UnpackerBase implements IUnpacker
      *
      * @param dir  the directory to create
      * @param file the pack file
+     * @param pack     the pack that {@code file} comes from
      * @throws IzPackException if the directory cannot be created or a listener throws an exception
      */
-    protected void createDirectory(File dir, PackFile file)
+    protected void createDirectory(File dir, PackFile file, Pack pack)
     {
         if (!dir.exists())
         {
@@ -807,14 +809,14 @@ public abstract class UnpackerBase implements IUnpacker
                 File parent = dir.getParentFile();
                 if (parent != null)
                 {
-                    createDirectory(parent, file);
+                    createDirectory(parent, file, pack);
                 }
-                listeners.beforeDir(dir, file);
+                listeners.beforeDir(dir, file, pack);
                 if (!dir.mkdir())
                 {
                     throw new IzPackException("Could not create directory: " + dir.getPath());
                 }
-                listeners.afterDir(dir, file);
+                listeners.afterDir(dir, file, pack);
             }
         }
     }
