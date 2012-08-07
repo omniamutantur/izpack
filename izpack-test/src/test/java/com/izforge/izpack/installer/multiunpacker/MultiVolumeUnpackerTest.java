@@ -74,6 +74,7 @@ import com.izforge.izpack.merge.resolve.MergeableResolver;
 import com.izforge.izpack.test.util.TestHelper;
 import com.izforge.izpack.util.Housekeeper;
 import com.izforge.izpack.util.Librarian;
+import com.izforge.izpack.util.PlatformModelMatcher;
 import com.izforge.izpack.util.Platforms;
 
 /**
@@ -198,7 +199,7 @@ public class MultiVolumeUnpackerTest
      */
     private PackInfo createPack(String name, File baseDir, File... files) throws IOException
     {
-        PackInfo pack = new PackInfo(name, name, "The " + name + " package", false, false, null, true);
+        PackInfo pack = new PackInfo(name, name, "The " + name + " package", false, false, null, true, 0);
         addFiles(pack, baseDir, files);
         return pack;
     }
@@ -259,9 +260,10 @@ public class MultiVolumeUnpackerTest
         FileQueueFactory queue = new FileQueueFactory(Platforms.WINDOWS, librarian);
         Prompt prompt = Mockito.mock(Prompt.class);
         InstallerListeners listeners = new InstallerListeners(installData, prompt);
+        PlatformModelMatcher matcher = new PlatformModelMatcher(new Platforms(), Platforms.WINDOWS);
         MultiVolumeUnpacker unpacker = new MultiVolumeUnpacker(installData, packResources, rules, replacer,
                                                                uninstallData, queue, housekeeper,
-                                                               listeners, prompt, locator);
+                                                               listeners, prompt, locator, matcher);
         unpacker.setProgressListener(Mockito.mock(ProgressListener.class));
         return unpacker;
     }
@@ -279,7 +281,7 @@ public class MultiVolumeUnpackerTest
     private AutomatedInstallData createInstallData(File mediaDir, File installDir, Resources resources)
             throws IOException, ClassNotFoundException
     {
-        AutomatedInstallData installData = new InstallData(new DefaultVariables());
+        AutomatedInstallData installData = new InstallData(new DefaultVariables(), Platforms.LINUX);
 
         installData.setInstallPath(installDir.getPath());
         installData.setMediaPath(mediaDir.getPath());

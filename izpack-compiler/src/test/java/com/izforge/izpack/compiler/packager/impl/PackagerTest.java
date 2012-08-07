@@ -19,65 +19,44 @@
 
 package com.izforge.izpack.compiler.packager.impl;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import java.util.Properties;
 
-import java.io.File;
-import java.io.IOException;
+import org.mockito.Mockito;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.izforge.izpack.api.data.GUIPrefs;
+import com.izforge.izpack.api.data.Info;
+import com.izforge.izpack.compiler.compressor.PackCompressor;
+import com.izforge.izpack.compiler.data.CompilerData;
+import com.izforge.izpack.compiler.listener.PackagerListener;
+import com.izforge.izpack.compiler.merge.resolve.CompilerPathResolver;
+import com.izforge.izpack.compiler.stream.JarOutputStream;
 import com.izforge.izpack.merge.MergeManager;
+import com.izforge.izpack.merge.resolve.MergeableResolver;
 
-public class PackagerTest
+/**
+ * Tests the {@link Packager}.
+ */
+public class PackagerTest extends AbstractPackagerTest
 {
+
     /**
-     * The merge manager.
+     * Helper to create a packager that writes to the provided jar.
+     *
+     * @param jar          the jar stream
+     * @param mergeManager the merge manager
+     * @return a new packager
      */
-    private MergeManager mergeManager;
-
-    @Before
-    public void setUp()
+    @Override
+    protected PackagerBase createPackager(JarOutputStream jar, MergeManager mergeManager)
     {
-        mergeManager = mock(MergeManager.class);
-    }
-
-    @Test
-    public void noSplash() throws IOException
-    {
-        final Packager packager = new Packager(null, null, null, null, null, mergeManager, null, null, null);
-        packager.setSplashScreenImage(null);
-        packager.writeManifest();
-
-        verify(mergeManager).addResourceToMerge(anyString(), eq("META-INF/MANIFEST.MF"));
-    }
-
-    @Test
-    public void guiPrefsWithSplash() throws IOException
-    {
-        final File splashImage = new File("image.png");
-        final Packager packager = new Packager(null, null, null, null, null, mergeManager, null, null, null);
-        packager.setGUIPrefs(new GUIPrefs());
-        packager.setSplashScreenImage(splashImage);
-        packager.writeManifest();
-
-        verify(mergeManager, times(1)).addResourceToMerge(anyString(), eq("META-INF/image.png"));
-        verify(mergeManager, times(1)).addResourceToMerge(anyString(), eq("META-INF/MANIFEST.MF"));
-    }
-
-    @Test
-    public void noGuiPrefs() throws IOException
-    {
-        final Packager packager = new Packager(null, null, null, null, null, mergeManager, null, null, null);
-
-        packager.writeManifest();
-
-        verify(mergeManager).addResourceToMerge(anyString(), anyString());
-
+        Properties properties = new Properties();
+        PackagerListener listener = null;
+        PackCompressor compressor = Mockito.mock(PackCompressor.class);
+        CompilerPathResolver pathResolver = Mockito.mock(CompilerPathResolver.class);
+        MergeableResolver resolver = Mockito.mock(MergeableResolver.class);
+        CompilerData data = new CompilerData("", "", "", true);
+        Packager packager = new Packager(properties, listener, jar, compressor, jar, mergeManager,
+                                         pathResolver, resolver, data);
+        packager.setInfo(new Info());
+        return packager;
     }
 }

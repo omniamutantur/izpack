@@ -23,17 +23,13 @@ package com.izforge.izpack.panels.path;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.izforge.izpack.api.data.InstallData;
 import com.izforge.izpack.api.data.Panel;
-import com.izforge.izpack.api.exception.ResourceNotFoundException;
 import com.izforge.izpack.api.handler.AbstractUIHandler;
 import com.izforge.izpack.api.resource.Resources;
 import com.izforge.izpack.gui.IzPanelLayout;
@@ -42,7 +38,7 @@ import com.izforge.izpack.installer.data.GUIInstallData;
 import com.izforge.izpack.installer.gui.InstallerFrame;
 import com.izforge.izpack.installer.gui.IzPanel;
 import com.izforge.izpack.util.IoHelper;
-import com.izforge.izpack.util.OsVersion;
+import com.izforge.izpack.util.Platforms;
 
 /**
  * Base class for panels which asks for paths.
@@ -73,8 +69,6 @@ public class PathInputPanel extends IzPanel implements ActionListener
     protected String emptyTargetMsg;
 
     protected String warnMsg;
-
-    protected static String defaultInstallDir = null;
 
     /**
      * Constructs a <tt>PathInputPanel</tt>.
@@ -309,152 +303,6 @@ public class PathInputPanel extends IzPanel implements ActionListener
         existFiles = strings;
     }
 
-    public void loadDefaultInstallDir()
-    {
-        defaultInstallDir = loadDefaultInstallDir(getResources(), installData);
-    }
-
-    /**
-     * Loads up the "dir" resource associated with TargetPanel. Acceptable dir resource names:
-     * <pre>
-     * TargetPanel.dir.macosx
-     * TargetPanel.dir.mac
-     * TargetPanel.dir.windows
-     * TargetPanel.dir.unix
-     * TargetPanel.dir.xxx
-     * </pre>
-     * where xxx is the lower case version of System.getProperty("os.name"),
-     * with any spaces replace with underscores
-     * TargetPanel.dir (generic that will be applied if none of above is found)
-     * As with all IzPack resources, each of the above ids should be associated with a separate
-     * filename, which is set in the install.xml file at compile time.
-     *
-     * @param resources   the resources
-     * @param installData the installation data
-     * @return the default installation directory for the current installation
-     */
-    public static String loadDefaultInstallDir(Resources resources, InstallData installData)
-    {
-        String defaultInstallDir = getDefaultInstallDir();
-        if (defaultInstallDir != null)
-        {
-            return defaultInstallDir;
-        }
-        BufferedReader br = null;
-        try
-        {
-            InputStream in = null;
-            String os = System.getProperty("os.name");
-            // first try to look up by specific os name
-            os = os.replace(' ', '_'); // avoid spaces in file names
-            os = os.toLowerCase(); // for consistency among TargetPanel res
-            // files
-            try
-            {
-                in = resources.getInputStream("TargetPanel.dir.".concat(os));
-            }
-            catch (ResourceNotFoundException rnfe)
-            {
-            }
-            if (in == null)
-            {
-                if (OsVersion.IS_WINDOWS)
-                {
-                    try
-                    {
-                        in = resources.getInputStream("TargetPanel.dir.windows");
-                    }
-                    catch (ResourceNotFoundException rnfe)
-                    {
-                    }//it's usual, that the resource does not exist
-                }
-                else if (OsVersion.IS_OSX)
-                {
-                    try
-                    {
-                        in = resources.getInputStream("TargetPanel.dir.macosx");
-                    }
-                    catch (ResourceNotFoundException rnfe)
-                    {
-                    }//it's usual, that the resource does not exist
-                }
-                else
-                {
-                    try
-                    {
-                        in = resources.getInputStream("TargetPanel.dir.unix");
-                    }
-                    catch (ResourceNotFoundException eee)
-                    {
-                    }//it's usual, that the resource does not exist
-                }
-            }
-
-            // if all above tests failed, there is no resource file,
-            // so use system default
-            if (in == null)
-            {
-                try
-                {
-                    in = resources.getInputStream("TargetPanel.dir");
-                }
-                catch (ResourceNotFoundException ignored)
-                {
-                }
-            }
-
-            if (in != null)
-            {
-                // now read the file, once we've identified which one to read
-                InputStreamReader isr = new InputStreamReader(in);
-                br = new BufferedReader(isr);
-                String line;
-                while ((line = br.readLine()) != null)
-                {
-                    line = line.trim();
-                    // use the first non-blank line
-                    if (!"".equals(line))
-                    {
-                        break;
-                    }
-                }
-                defaultInstallDir = line;
-
-                defaultInstallDir = installData.getVariables().replace(defaultInstallDir);
-            }
-            else
-            {
-                defaultInstallDir = installData.getDefaultInstallPath();
-                if (defaultInstallDir == null)
-                {
-                    // Make the  default path point to the current location
-                    defaultInstallDir = System.getProperty("user.dir");
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            //mar: what's the common way to log an exception ?
-            e.printStackTrace();
-            defaultInstallDir = null;
-            // leave unset to take the system default set by Installer class
-        }
-        finally
-        {
-            try
-            {
-                if (br != null)
-                {
-                    br.close();
-                }
-            }
-            catch (IOException ignored)
-            {
-            }
-        }
-        return defaultInstallDir;
-    }
-
     /**
      * This method determines whether the chosen dir is writeable or not.
      *
@@ -470,7 +318,7 @@ public class PathInputPanel extends IzPanel implements ActionListener
         // On windows we cannot use canWrite because
         // it looks to the dos flags which are not valid
         // on NT or 2k XP or ...
-        if (OsVersion.IS_WINDOWS)
+        if (installData.getPlatform().isA(Platforms.WINDOWS))
         {
             File tmpFile;
             try
@@ -486,26 +334,6 @@ public class PathInputPanel extends IzPanel implements ActionListener
             return true;
         }
         return existParent.canWrite();
-    }
-
-    /**
-     * Returns the default for the installation directory.
-     *
-     * @return the default for the installation directory
-     */
-    public static String getDefaultInstallDir()
-    {
-        return defaultInstallDir;
-    }
-
-    /**
-     * Sets the default for the installation directory to the given string.
-     *
-     * @param defaultInstallDir path for default for the installation directory
-     */
-    public static void setDefaultInstallDir(String defaultInstallDir)
-    {
-        PathInputPanel.defaultInstallDir = defaultInstallDir;
     }
 
 }
