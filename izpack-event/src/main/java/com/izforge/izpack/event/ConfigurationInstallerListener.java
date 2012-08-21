@@ -653,7 +653,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 
                 case REGISTRY:
                     task = new RegistryTask();
-                    ((RegistryTask) task).setFromKey(requireAttribute(el, "fromkey"));
+                    ((RegistryTask) task).setFromKey(getAttribute(el, "fromkey"));
                     ((RegistryTask) task).setKey(requireAttribute(el, "tokey"));
                     readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
                     break;
