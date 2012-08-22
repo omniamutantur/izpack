@@ -36,19 +36,19 @@ public class SingleOptionFileTask extends ConfigFileTask
     @Override
     protected void readSourceConfigurable() throws Exception
     {
-        if (oldFile != null)
+        if (fromFile != null)
         {
             try
             {
-                if (!oldFile.exists())
+                if (!fromFile.exists())
                 {
-                    logger.warning("Options file " + oldFile.getAbsolutePath()
+                    logger.warning("Options file " + fromFile.getAbsolutePath()
                             + " to patch from could not be found, no patches will be applied");
                     return;
                 }
-                logger.fine("Loading options file: " + oldFile.getAbsolutePath());
+                logger.fine("Loading options file: " + fromFile.getAbsolutePath());
                 // Configuration file type must be the same as the target type
-                fromConfigurable = new Options(this.oldFile);
+                fromConfigurable = new Options(this.fromFile);
             }
             catch (IOException ioe)
             {
@@ -60,28 +60,16 @@ public class SingleOptionFileTask extends ConfigFileTask
     @Override
     protected void readConfigurable() throws Exception
     {
-        if (newFile != null && newFile.exists())
+        if (toFile.exists())
         {
             try
             {
-                logger.fine("Loading original configuration file: " + newFile.getAbsolutePath());
-                configurable = new Options(newFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception("Error opening original configuration file: " + ioe.toString());
-            }
-        }
-        else if (toFile != null && toFile.exists())
-        {
-            try
-            {
-                logger.fine("Loading target configuration file: " + toFile.getAbsolutePath());
+                logger.fine("Loading original configuration file: " + toFile.getAbsolutePath());
                 configurable = new Options(toFile);
             }
             catch (IOException ioe)
             {
-                throw new Exception("Error opening target configuration file: " + ioe.toString());
+                throw new Exception("Error opening original configuration file: " + ioe.toString());
             }
         }
         else
@@ -93,30 +81,42 @@ public class SingleOptionFileTask extends ConfigFileTask
     @Override
     protected void writeConfigurable() throws Exception
     {
-
+    	File targetFile = getOutputFile();
         try
         {
-            if (!toFile.exists())
+	        if (targetFile.exists())
+	        {
+	        	if (!overwrite)
+	        	{
+	        		logger.warning("Options file " + targetFile.getAbsolutePath()
+	                        + " exists and is not allowed to be overwritten");
+	                return;
+	        	}
+	        }
+	        else
             {
                 if (createConfigurable)
                 {
-                    File parent = toFile.getParentFile();
+                    File parent = targetFile.getParentFile();
                     if (parent != null && !parent.exists())
                     {
-                        parent.mkdirs();
+                        if (!parent.mkdirs())
+                        {
+                        	throw new IOException("Failed to create options file target location " + parent.getPath());
+                        }
                     }
-                    logger.fine("Creating empty properties file: " + toFile.getAbsolutePath());
-                    toFile.createNewFile();
+                    logger.fine("Creating empty options file: " + targetFile.getAbsolutePath());
+                    targetFile.createNewFile();
                 }
                 else
                 {
-                    logger.warning("Options file " + toFile.getAbsolutePath()
+                    logger.warning("Options file " + targetFile.getAbsolutePath()
                             + " did not exist and is not allowed to be created");
                     return;
                 }
             }
             Options opts = (Options) configurable;
-            opts.setFile(toFile);
+            opts.setFile(targetFile);
             opts.setComment(getComment());
             opts.store();
         }
@@ -125,11 +125,11 @@ public class SingleOptionFileTask extends ConfigFileTask
             throw new Exception(ioe);
         }
 
-        if (cleanup && oldFile.exists())
+        if (cleanup && fromFile.exists())
         {
-            if (!oldFile.delete())
+            if (!fromFile.delete())
             {
-                logger.warning("File " + oldFile + " could not be cleant up");
+                logger.warning("File " + fromFile + " could not be cleant up");
             }
         }
     }

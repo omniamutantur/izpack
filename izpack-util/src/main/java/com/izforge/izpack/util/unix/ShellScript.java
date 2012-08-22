@@ -339,7 +339,7 @@ public class ShellScript
      * (") correctly.<br>
      * else just whitespace separate tokens.<br>
      * This means for the sample. runtime.exec() would ever execute such as: su "-c" "\"cp"
-     * "fromFile" "toFile\""<br>
+     * "fromFile" "targetFile\""<br>
      * But this his hidden in Sun's native code ;-(<br>
      * This was the reason to write this class to have a Workaround :-)
      *

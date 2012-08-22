@@ -28,18 +28,18 @@ public class OptionFileCopyTask extends ConfigurableFileCopyTask
 {
 
     @Override
-    protected void doFileOperation(File oldFile, File newFile, File toFile,
-            boolean patchPreserveEntries, boolean patchPreserveValues, boolean patchResolveVariables)
+    protected void doFileOperation(File oldFile, File newFile, File toFile)
             throws Exception
     {
         SingleOptionFileTask task = new SingleOptionFileTask();
-        task.setOldFile(oldFile);
-        task.setNewFile(newFile);
-        task.setToFile(toFile);
-        task.setCreate(true);
+        // Use task defaults for create (true) and cleanup (false)
+        task.setFromFile(oldFile);
+        task.setToFile(newFile);
+        task.setTargetFile(toFile);
         task.setPatchPreserveEntries(patchPreserveEntries);
         task.setPatchPreserveValues(patchPreserveValues);
         task.setPatchResolveVariables(patchResolveVariables);
+        task.setOverwrite(forceOverwrite);
         task.execute();
     }
 }

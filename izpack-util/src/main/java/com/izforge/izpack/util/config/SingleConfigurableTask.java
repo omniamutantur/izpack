@@ -57,6 +57,8 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
 
     protected boolean createConfigurable = true;
 
+    protected boolean overwrite = false;
+
     /*
      * ini4j settings
      */
@@ -179,11 +181,21 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
      * Whether the configuration file or registry root entry should be created if it doesn't already
      * exist (default: true).
      *
-     * @param create - whether to create a new configuration file or registry root entry
+     * @param create true, to create a new configuration file or registry root entry
      */
     public void setCreate(boolean create)
     {
         createConfigurable = create;
+    }
+
+    /**
+     * Whether to overwrite an existing file specified as the target.
+     * 
+     * @param overwrite true, if the target file already exists and should be overwritten
+     */
+    public void setOverwrite(boolean overwrite)
+    {
+    	this.overwrite = overwrite;
     }
 
     @Override
@@ -195,7 +207,7 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
         Config.getGlobal().setEscape(escape);
         Config.getGlobal().setEscapeNewline(escapeNewLine);
         Config.getGlobal().setOperator(operator);
-        checkAttributes();
+        validate();
         readConfigurable();
         readSourceConfigurable();
         patchConfigurable();
@@ -570,7 +582,7 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
         }
     }
 
-    protected abstract void checkAttributes() throws Exception;
+    protected abstract void validate() throws Exception;
 
     protected abstract void readSourceConfigurable() throws Exception;
 

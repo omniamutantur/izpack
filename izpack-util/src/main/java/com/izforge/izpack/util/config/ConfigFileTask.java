@@ -30,11 +30,11 @@ public abstract class ConfigFileTask extends SingleConfigurableTask
      * Instance variables.
      */
 
-    protected File oldFile;
-
-    protected File newFile;
+    protected File fromFile;
 
     protected File toFile;
+
+    protected File targetFile;
 
     protected boolean cleanup;
 
@@ -45,35 +45,57 @@ public abstract class ConfigFileTask extends SingleConfigurableTask
     private String comment;
 
     /**
-     * Location of the configuration file to be patched to; optional. If not set, any empty
-     * reference file is assumed, instead.
-     */
-    public void setNewFile(File file)
-    {
-        this.newFile = file;
-    }
-
-    /**
-     * Location of the configuration file to be patched from; optional. If not set, attributes
-     * defining preservations of entries and values are ignored.
-     */
-    public void setOldFile(File file)
-    {
-        this.oldFile = file;
-    }
-
-    /**
-     * Location of the resulting output file; required.
+     * Location of the configuration file to be written; required. May be an existing file to
+     * be patched, or a new file (implying that configuration values will be specified e.g. by 
+     * &lt;entry&gt; elements to ConfigurationInstallerListener).
+     * 
+     * @see #setTargetFile(File)
      */
     public void setToFile(File file)
     {
         this.toFile = file;
     }
 
+    /**
+     * Location of the configuration file to be patched from; optional. If not set, attributes
+     * defining preservations of entries and values are ignored.
+     */
+    public void setFromFile(File file)
+    {
+        this.fromFile = file;
+    }
 
     /**
-     * Whether to delete the patchfile after the operation
-     * @param cleanup True, if the patchfile should be deleted after the operation
+     * Alternative location for the resulting configuration output; optional. Allows an 
+     * original config file (defined by {@link #setToFile(File) setToFile}) to be preserved,
+     * and the new, merged configuration written to a separate file.
+     */
+    public void setTargetFile(File file)
+    {
+        this.targetFile = file;
+    }
+    
+    /**
+     * Returns the location to which config should be written. Always {@code targetFile}, if
+     * defined (i.e. old configuration file preserved; otherwise, {@code toFile} (i.e. old 
+     * configuration file overwritten).
+     * 
+     * @returns the location to which config should be written
+     */
+    protected File getOutputFile(){
+    	if(targetFile == null) 
+    	{
+    		return toFile;
+    	}
+    	else 
+    	{ 
+    		return targetFile;
+    	}
+    }
+    
+    /**
+     * Whether to delete the toFile after the operation
+     * @param cleanup True, if the toFile should be deleted after the operation
      */
     public void setCleanup(boolean cleanup)
     {
@@ -94,9 +116,9 @@ public abstract class ConfigFileTask extends SingleConfigurableTask
     }
 
     @Override
-    protected void checkAttributes() throws Exception
+    protected void validate() throws Exception
     {
-        if (this.toFile == null) { throw new Exception("The \"file\" attribute must be set"); }
+        // No additional validation required.
     }
 
 }

@@ -45,31 +45,42 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
 {
     private static final Logger logger = Logger.getLogger(SingleXmlFileMergeTask.class.getName());
 
-    protected File origfile;
-    protected File patchfile;
-    protected File tofile;
+    protected File fromFile;
+    protected File toFile;
+    protected File targetFile;
     protected File conffile;
     protected boolean cleanup;
 
     protected Properties confProps = new Properties();
 
 
-    public void setOriginalFile(File origfile)
+    public void setFromFile(File fromFile)
     {
-        this.origfile = origfile;
+        this.fromFile = fromFile;
     }
 
 
-    public void setPatchFile(File patchfile)
+    public void setToFile(File toFile)
     {
-        this.patchfile = patchfile;
+        this.toFile = toFile;
     }
 
 
-    public void setToFile(File tofile)
+    public void setTargetFile(File targetFile)
     {
-        this.tofile = tofile;
+        this.targetFile = targetFile;
     }
+    
+    protected File getOutputFile(){
+    	if(targetFile == null) 
+    	{
+    		return toFile;
+    	}
+    	else 
+    	{ 
+    		return targetFile;
+    	}
+	}
 
     public void setConfigFile(File confFile)
     {
@@ -111,16 +122,12 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
     * Validates the configuration and destination files and the file sets.
     */
     public void validate() throws Exception {
-        if (tofile == null) {
-            throw new Exception("XML merge output file not set");
-        }
-        if (filesets.isEmpty() && patchfile == null) {
+        if (filesets.isEmpty() && fromFile == null) 
+        {
             throw new Exception("No XML merge patch files given at all");
         }
-        if (origfile == null) {
-            throw new Exception("No XML merge patch files given at all");
-        }
-        if (!confProps.isEmpty() && conffile != null) {
+        if (!confProps.isEmpty() && conffile != null) 
+        {
             throw new Exception("Using both XML merge configuration file and explicit merge properties not allowed");
         }
     }
@@ -132,15 +139,15 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
         // Get the files to merge
         LinkedList<File> filesToMerge = new LinkedList<File>();
 
-        if (origfile != null)
+        if (fromFile != null)
         {
-            if (origfile.exists())
+            if (fromFile.exists())
             {
-                filesToMerge.add(origfile);
+                filesToMerge.add(fromFile);
             }
             else
             {
-                logger.warning("XML merge skipped, target file "+origfile+" not found");
+                logger.warning("XML merge skipped, target file "+fromFile+" not found");
                 return;
             }
         }
@@ -150,8 +157,8 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
             return;
         }
 
-        if (patchfile != null && patchfile.exists())
-            filesToMerge.add(patchfile);
+        if (toFile != null && toFile.exists())
+            filesToMerge.add(toFile);
 
         for (FileSet fs : filesets) {
             DirectoryScanner ds = fs.getDirectoryScanner();
@@ -196,8 +203,9 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
             throw new Exception(e);
         }
 
+        File targetFile = getOutputFile();
         try {
-            xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), tofile);
+            xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), targetFile);
         } catch (AbstractXmlMergeException e) {
             throw new Exception(e);
         }
@@ -206,11 +214,11 @@ public class SingleXmlFileMergeTask implements ConfigurableTask
         {
             for (File file : filesToMerge)
             {
-                if (file.exists() && !file.equals(tofile))
+                if (file.exists() && !file.equals(targetFile))
                 {
                     if (!file.delete())
                     {
-                        logger.warning("File " + file + " could not be cleant up");
+                        logger.warning("File " + file + " could not be cleaned up");
                     }
                 }
             }

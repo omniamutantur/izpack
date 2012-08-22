@@ -36,23 +36,23 @@ public class RegistryTask extends SingleConfigurableTask
      * Instance variables.
      */
 
-    protected String key;
+    protected String toKey;
     protected String fromKey;
 
     /**
      * Location of the configuration file to be edited; required.
      */
-    public void setKey(String key)
+    public void setToKey(String toKey)
     {
-        this.key = key;
+        this.toKey = toKey;
     }
 
     /**
      * Location of the configuration file to be patched from; optional.
      */
-    public void setFromKey(String key)
+    public void setFromKey(String fromKey)
     {
-        this.fromKey = key;
+        this.fromKey = fromKey;
     }
 
     @Override
@@ -76,12 +76,12 @@ public class RegistryTask extends SingleConfigurableTask
     @Override
     protected void readConfigurable() throws Exception
     {
-        if (this.key != null)
+        if (this.toKey != null)
         {
             try
             {
-                logger.fine("Loading from registry: " + this.key);
-                configurable = new Reg(this.key);
+                logger.fine("Loading from registry: " + this.toKey);
+                configurable = new Reg(this.toKey);
             }
             catch (IOException ioe)
             {
@@ -96,7 +96,7 @@ public class RegistryTask extends SingleConfigurableTask
 
         if (configurable == null)
         {
-            logger.warning("Registry key " + this.key
+            logger.warning("Registry key " + this.toKey
                     + " did not exist and is not allowed to be created");
             return;
         }
@@ -113,9 +113,9 @@ public class RegistryTask extends SingleConfigurableTask
     }
 
     @Override
-    protected void checkAttributes() throws Exception
+    protected void validate() throws Exception
     {
-        if (this.key == null) { throw new Exception("Key attribute must be set"); }
+        // No additional validation required.
     }
 
     @Override

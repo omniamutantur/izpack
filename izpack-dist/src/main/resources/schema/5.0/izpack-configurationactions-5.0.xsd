@@ -69,9 +69,9 @@
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
-        <xs:attribute name="tofile" type="xs:string" use="required"/>
-        <xs:attribute name="patchfile" type="xs:string" use="optional"/>
-        <xs:attribute name="originalfile" type="xs:string" use="optional"/>
+        <xs:attribute name="to" type="xs:string" use="required"/>
+        <xs:attribute name="from" type="xs:string" use="optional"/>
+        <xs:attribute name="target" type="xs:string" use="optional"/>
         <xs:attribute name="configfile" type="xs:string" use="optional"/>
         <xs:attribute name="create" type="xs:boolean" use="optional"/>
         <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
@@ -99,14 +99,12 @@
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
-        <xs:attribute name="fromfile" type="xs:string" use="optional"/>
-        <xs:attribute name="todir" type="xs:string" use="optional"/>
-        <xs:attribute name="tofile" type="xs:string" use="optional"/>
+        <xs:attribute name="to" type="xs:string" use="optional"/>
         <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
         <xs:attribute name="keepOldValues" type="xs:boolean" use="optional"/>
         <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional"/>
         <xs:attribute name="failonerror" type="xs:boolean" use="optional"/>
-        <xs:attribute name="includeemptydirs" type="xs:boolean" use="optional"/>
+        <xs:attribute name="includeempty" type="xs:boolean" use="optional"/>
         <xs:attribute name="overwrite" type="xs:boolean" use="optional"/>
         <xs:attribute name="preservelastmodified" type="xs:boolean" use="optional"/>
         <xs:attribute name="enablemultiplemappings" type="xs:boolean" use="optional"/>

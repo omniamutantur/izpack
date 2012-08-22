@@ -33,11 +33,11 @@ public abstract class ConfigurableFileCopyTask extends FileCopyTask implements C
 {
     private static final Logger logger = Logger.getLogger(ConfigurableFileCopyTask.class.getName());
 
-    private boolean patchPreserveEntries = true;
+    protected boolean patchPreserveEntries = true;
 
-    private boolean patchPreserveValues = true;
+    protected boolean patchPreserveValues = true;
 
-    private boolean patchResolveVariables = false;
+    protected boolean patchResolveVariables = false;
 
     protected boolean cleanup;
 
@@ -90,15 +90,11 @@ public abstract class ConfigurableFileCopyTask extends FileCopyTask implements C
     /**
      * Do a patch operation.
      *
-     * @param oldFile original file to patch from
-     * @param newFile newer reference file to patch certain values or entries to
-     * @param toFile output file of the patched result
-     * @param patchPreserveEntries set true to reserve old entries
-     * @param patchPreserveValues set true to reserver old values
-     * @param patchResolveVariables set true to resolve in-text variables during patching
+     * @param fromFile original file to patch from
+     * @param toFile newer reference file to patch certain values or entries to
+     * @param targetFile output file of the patched result
      */
-    protected abstract void doFileOperation(File oldFile, File newFile, File toFile,
-            boolean patchPreserveEntries, boolean patchPreserveValues, boolean patchResolveVariables)
+    protected abstract void doFileOperation(File fromFile, File toFile, File targetFile)
             throws Exception;
 
     @Override
@@ -125,36 +121,30 @@ public abstract class ConfigurableFileCopyTask extends FileCopyTask implements C
 
                     logger.fine("Merge/copy " + fromFile + " into " + toFile);
 
+                    // The target file to copy to is the original (old) file to
+                    // take preservations of old entries and values from.
+                    // The source file to copy from is the new file which contains
+                    // the reference entries and values which might be patched from
+                    // the original ones.
+                    // The temp file is a transitional file to store the initial merge
+                    // before replacing the original file.
                     File to = new File(toFile);
-                    File parent = to.getParentFile();
-                    if (parent != null && !parent.exists())
-                    {
-                        parent.mkdirs();
-                    }
-                    if (!to.exists())
-                    {
-                        to.createNewFile();
-                    }
-
-                    File toTmp = File.createTempFile("tmp-", null, parent);
+                    File from = new File(fromFile);
+                    /* TODO: change this so that a copy of target is maintained in temp
+                     * for possible rollback, and just write the merge straight to
+                     * the target file? */
+                    File toTmp = File.createTempFile("tmp-", null, to.getParentFile());
 
                     try
                     {
-                        // The target file to copy to is the original (old) file to
-                        // take preservations of old entries and values from
-                        // The source file to copy from is the new file which contains
-                        // the reference entries and values which might be patched from
-                        // the original ones
-                        File from = new File(fromFile);
-                        doFileOperation(from, to, toTmp, patchPreserveEntries,
-                                patchPreserveValues, patchResolveVariables);
+                        doFileOperation(from, to, toTmp);
 
                         getFileUtils().copyFile(toTmp, to, forceOverwrite, preserveLastModified);
                         if (cleanup && from.exists())
                         {
                             if (!from.delete())
                             {
-                                logger.warning("File " + from + " could not be cleant up");
+                                logger.warning("File " + from + " could not be cleaned up");
                             }
                         }
                     }
@@ -162,12 +152,15 @@ public abstract class ConfigurableFileCopyTask extends FileCopyTask implements C
                     {
                         String msg = "Failed to merge/copy " + fromFile + " into " + toFile
                                 + " due to " + be.getMessage();
-                        File targetFile = new File(toFile);
-                        if (targetFile.exists() && !targetFile.delete())
+                        // TODO: should there be proper rollback here to restore the original state of the file? See 'todo' above.
+                        if (failonerror)
                         {
-                            msg += " and I couldn't delete the corrupt " + toFile;
+                        	throw new Exception(msg, be);
                         }
-                        throw new Exception(msg, be);
+                        else
+                        {
+                        	logger.warning(msg);
+                        }
                     }
                     finally
                     {
