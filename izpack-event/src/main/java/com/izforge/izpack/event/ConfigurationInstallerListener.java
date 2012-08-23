@@ -454,12 +454,12 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             throws InstallerException
     {
         InstallData idata = getInstallData();
-        task.setToDir(FileUtil.getAbsoluteFile(getAttribute(el, "to"), idata.getInstallPath()));
+        task.setToDir(FileUtil.getAbsoluteFile(getAttribute(el, "toDir"), idata.getInstallPath()));
         task.setPatchPreserveEntries(getBooleanAttribute(el, "keepOldKeys"));
         task.setPatchPreserveValues(getBooleanAttribute(el, "keepOldValues"));
         task.setPatchResolveExpressions(getBooleanAttribute(el, "resolveExpressions"));
         task.setFailOnError(getBooleanAttribute(el, "failonerror"));
-        task.setIncludeEmptyDirs(getBooleanAttribute(el, "includeempty"));
+        task.setIncludeEmptyDirs(getBooleanAttribute(el, "includeemptydirs"));
         task.setOverwrite(getBooleanAttribute(el, "overwrite"));
         task.setPreserveLastModified(getBooleanAttribute(el, "preservelastmodified"));
         task.setEnableMultipleMappings(getBooleanAttribute(el, "enablemultiplemappings"));
