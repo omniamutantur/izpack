@@ -45,6 +45,11 @@ public class RegistryTask extends SingleConfigurableTask
     {
         this.key = key;
     }
+    
+    public String getKey()
+    {
+    	return key;
+    }
 
     /**
      * Location of the configuration file to be patched from; optional.
@@ -60,15 +65,8 @@ public class RegistryTask extends SingleConfigurableTask
         // deal with a registry key to patch from
         if (this.fromKey != null)
         {
-            try
-            {
-                logger.fine("Loading from registry: " + this.fromKey);
-                fromConfigurable = new Reg(this.fromKey);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception(ioe.toString());
-            }
+            logger.fine("Loading from registry: " + this.fromKey);
+            fromConfigurable = new Reg(this.fromKey);
         }
     }
 
@@ -77,15 +75,8 @@ public class RegistryTask extends SingleConfigurableTask
     {
         if (this.key != null)
         {
-            try
-            {
-                logger.fine("Loading from registry: " + this.key);
-                configurable = new Reg(this.key);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception(ioe.toString());
-            }
+            logger.fine("Loading from registry: " + this.key);
+            configurable = new Reg(this.key, createConfigurable);
         }
     }
 
@@ -103,7 +94,7 @@ public class RegistryTask extends SingleConfigurableTask
         try
         {
             Reg r = (Reg) configurable;
-            r.store();
+            r.write();
         }
         catch (IOException ioe)
         {

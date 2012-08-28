@@ -23,6 +23,7 @@ package com.izforge.izpack.util.config.base;
 
 import java.io.*;
 import java.net.URL;
+import java.util.concurrent.ExecutionException;
 
 import com.izforge.izpack.util.config.base.spi.IniFormatter;
 import com.izforge.izpack.util.config.base.spi.IniHandler;
@@ -31,8 +32,8 @@ import com.izforge.izpack.util.config.base.spi.RegBuilder;
 
 public class Reg extends BasicRegistry implements Registry, Persistable, Configurable
 {
-    private static final long serialVersionUID = -1485602876922985912L;
-    protected static final String DEFAULT_SUFFIX = ".reg";
+	private static final long serialVersionUID = -5050673095845660030L;
+	protected static final String DEFAULT_SUFFIX = ".reg";
     protected static final String TMP_PREFIX = "reg-";
     private static final int STDERR_BUFF_SIZE = 8192;
     private static final String PROP_OS_NAME = "os.name";
@@ -58,10 +59,24 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         _config = cfg;
     }
 
+    /**
+     * Read the specified registry key. Now deprecated; calls 
+     * {@link #Reg(String, boolean) Reg(registryKey, false)}, to retain legacy behaviour
+     * (fails if key not found). 
+     * 
+     * @param registryKey
+     * @throws IOException
+     */
+    @Deprecated
     public Reg(String registryKey) throws IOException
     {
+        this(registryKey, false);
+    }
+    
+    public Reg(String registryKey, boolean create) throws IOException
+    {
         this();
-        read(registryKey);
+        read(registryKey, create);
     }
 
     public Reg(File input) throws IOException, InvalidFileFormatException
@@ -173,7 +188,7 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         load(input.toURI().toURL());
     }
 
-    public void read(String registryKey) throws IOException
+    public void read(String registryKey, boolean create) throws IOException
     {
         File tmp = createTempFile();
 
@@ -181,6 +196,17 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         {
             regExport(registryKey, tmp);
             load(tmp);
+        }
+        catch (IOException ioe)
+        {
+        	if (create && ioe.getCause() instanceof ExecutionException)
+        	{
+                add(registryKey);
+        	}
+        	else
+        	{
+        		throw ioe;
+        	}
         }
         finally
         {
@@ -254,27 +280,45 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         return getConfig().isPropertyFirstUpper();
     }
 
+    /**
+     * Executes the system command given in the array {@code args}.
+     * 
+     * @param args
+     * @throws InterruptedIOException if the system command did not complete
+     * @throws IOException in the event of any other error. If the system command returns
+     * a non-zero exit code, a call to {@code getCause()} will return an instance of 
+     * {@code ExecutionException}.
+     * @see Runtime#exec(String[])
+     */
     void exec(String[] args) throws IOException
     {
         Process proc = Runtime.getRuntime().exec(args);
+        Reader errStream = null;
 
         try
         {
             int status = proc.waitFor();
-
+            
             if (status != 0)
             {
-                Reader in = new InputStreamReader(proc.getErrorStream());
+                errStream = new InputStreamReader(proc.getErrorStream());
                 char[] buff = new char[STDERR_BUFF_SIZE];
-                int n = in.read(buff);
-
-                in.close();
-                throw new IOException(new String(buff, 0, n).trim());
+                int n = errStream.read(buff);
+                
+                final String msg = new String(buff, 0, n).trim();
+                throw new IOException(new ExecutionException(msg){});
             }
         }
         catch (InterruptedException x)
         {
             throw (IOException) (new InterruptedIOException().initCause(x));
+        }
+        finally
+        {
+        	if (errStream != null)
+        	{
+        		errStream.close();
+        	}
         }
     }
 

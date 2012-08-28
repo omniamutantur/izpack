@@ -57,6 +57,8 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     private boolean patchResolveVariables = false;
 
     protected boolean createConfigurable = true;
+    
+    protected boolean overwrite = false;
 
     /*
      * ini4j settings
@@ -113,6 +115,11 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     public void setPatchResolveVariables(boolean resolve)
     {
         patchResolveVariables = resolve;
+    }
+    
+    public void setOverwrite(boolean overwrite)
+    {
+    	this.overwrite = overwrite;
     }
 
     /**

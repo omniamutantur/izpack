@@ -71,6 +71,7 @@ import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.LookupType;
 import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.Operation;
 import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.Type;
 import com.izforge.izpack.util.config.SingleConfigurableTask.Unit;
+import com.izforge.izpack.util.config.base.Reg;
 import com.izforge.izpack.util.config.SingleIniFileTask;
 import com.izforge.izpack.util.config.SingleOptionFileTask;
 import com.izforge.izpack.util.config.SingleXmlFileMergeTask;
@@ -463,54 +464,54 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     {
         InstallData idata = getInstallData();
         task.setToDir(FileUtil.getAbsoluteFile(getAttribute(el, "todir"), idata.getInstallPath()));
-        task.setToFile(FileUtil.getAbsoluteFile(getAttribute(el, "tofile"), idata.getInstallPath()));
-        task.setFile(FileUtil.getAbsoluteFile(getAttribute(el, "fromfile"), idata.getInstallPath()));
-        String boolattr = getAttribute(el, "keepOldKeys");
-        if (boolattr != null)
-        {
-            task.setPatchPreserveEntries(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "keepOldValues");
-        if (boolattr != null)
-        {
-            task.setPatchPreserveValues(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "resolveExpressions");
-        if (boolattr != null)
-        {
-            task.setPatchResolveExpressions(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "failonerror");
-        if (boolattr != null)
-        {
-            task.setFailOnError(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "includeemptydirs");
-        if (boolattr != null)
-        {
-            task.setIncludeEmptyDirs(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "overwrite");
-        if (boolattr != null)
-        {
-            task.setOverwrite(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "preservelastmodified");
-        if (boolattr != null)
-        {
-            task.setPreserveLastModified(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "enablemultiplemappings");
-        if (boolattr != null)
-        {
-            task.setEnableMultipleMappings(Boolean.parseBoolean(boolattr));
-        }
-        boolattr = getAttribute(el, "cleanup");
-        if (boolattr != null)
-        {
-            task.setCleanup(Boolean.parseBoolean(boolattr));
-        }
-        for (FileSet fs : readFileSets(el))
+        
+    	Boolean boolAttr = (getBooleanAttribute(el, "keepOldKeys"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchPreserveEntries(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "keepOldValues"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchPreserveValues(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "resolveExpressions"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchResolveExpressions(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "failonerror"));
+    	if (boolAttr != null)
+		{
+    		task.setFailOnError(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "includeemptydirs"));
+    	if (boolAttr != null)
+		{
+    		task.setIncludeEmptyDirs(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "overwrite"));
+    	if (boolAttr != null)
+		{
+    		task.setOverwrite(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "preservelastmodified"));
+    	if (boolAttr != null)
+		{
+    		task.setPreserveLastModified(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "enablemultiplemappings"));
+    	if (boolAttr != null)
+		{
+    		task.setEnableMultipleMappings(boolAttr);
+		}
+        boolAttr = (getBooleanAttribute(el, "cleanup"));
+    	if (boolAttr != null)
+		{
+    		task.setCleanup(boolAttr);
+		}
+
+    	for (FileSet fs : readFileSets(el))
         {
             task.addFileSet(fs);
         }
@@ -530,50 +531,55 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     private void readSingleConfigurableTaskCommonAttributes(IXMLElement el, SingleConfigurableTask task)
             throws InstallerException
     {
-        String attr = getAttribute(el, "create");
-        if (attr != null)
+    	Boolean boolAttr = getBooleanAttribute(el, "create");
+    	if (boolAttr != null)
+		{
+    		task.setCreate(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "overwrite"));
+    	if (boolAttr != null)
+		{
+    		task.setOverwrite(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "keepOldKeys"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchPreserveEntries(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "keepOldValues"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchPreserveValues(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "resolveExpressions"));
+    	if (boolAttr != null)
+		{
+    		task.setPatchResolveVariables(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "escape"));
+    	if (boolAttr != null)
+		{
+    		task.setEscape(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "escapeNewLine"));
+    	if (boolAttr != null)
+		{
+    		task.setEscapeNewLine(boolAttr);
+		}        
+    	boolAttr = (getBooleanAttribute(el, "headerComment"));
+    	if (boolAttr != null)
+		{
+    		task.setHeaderComment(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(el, "emptyLines"));
+    	if (boolAttr != null)
+		{
+    		task.setEmptyLines(boolAttr);
+		}
+    	String operator = getAttribute(el, "operator");
+        if (operator != null)
         {
-            task.setCreate(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "keepOldKeys");
-        if (attr != null)
-        {
-            task.setPatchPreserveEntries(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "keepOldValues");
-        if (attr != null)
-        {
-            task.setPatchPreserveValues(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "resolveExpressions");
-        if (attr != null)
-        {
-            task.setPatchResolveVariables(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "escape");
-        if (attr != null)
-        {
-            task.setEscape(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "escapeNewLine");
-        if (attr != null)
-        {
-            task.setEscapeNewLine(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "headerComment");
-        if (attr != null)
-        {
-            task.setHeaderComment(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "emptyLines");
-        if (attr != null)
-        {
-            task.setEmptyLines(Boolean.parseBoolean(attr));
-        }
-        attr = getAttribute(el, "operator");
-        if (attr != null)
-        {
-            task.setOperator(attr);
+            task.setOperator(operator);
         }
     }
 
@@ -586,11 +592,11 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         task.setOldFile(FileUtil.getAbsoluteFile(getAttribute(el, "patchfile"), idata.getInstallPath()));
         File newfile = FileUtil.getAbsoluteFile(getAttribute(el, "originalfile"), idata.getInstallPath());
         task.setNewFile(newfile);
-        String boolattr = getAttribute(el, "cleanup");
-        if (boolattr != null)
-        {
-            task.setCleanup(Boolean.parseBoolean(boolattr));
-        }
+        Boolean boolAttr = (getBooleanAttribute(el, "cleanup"));
+    	if (boolAttr != null)
+		{
+    		task.setCleanup(boolAttr);
+		}
     }
 
     protected List<ConfigurationActionTask> readConfigurables(IXMLElement parent) throws InstallerException
@@ -646,12 +652,14 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     ((SingleXmlFileMergeTask) task).setOriginalFile(originalfile);
                     ((SingleXmlFileMergeTask) task).setConfigFile(
                             FileUtil.getAbsoluteFile(getAttribute(el, "configfile"), idata.getInstallPath()));
-                    String boolattr = getAttribute(el, "cleanup");
-                    if (boolattr != null)
-                    {
-                        ((SingleXmlFileMergeTask) task).setCleanup(Boolean.parseBoolean(boolattr));
-                    }
-                    List<FileSet> fslist = readFileSets(el);
+                    
+                    Boolean boolAttr = (getBooleanAttribute(el, "cleanup"));
+                	if (boolAttr != null)
+            		{
+                		((SingleXmlFileMergeTask) task).setCleanup(boolAttr);
+            		}
+                	
+                	List<FileSet> fslist = readFileSets(el);
                     for (FileSet fs : fslist)
                     {
                         ((SingleXmlFileMergeTask) task).addFileSet(fs);
@@ -661,9 +669,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 
                 case REGISTRY:
                     task = new RegistryTask();
-                    ((RegistryTask) task).setFromKey(requireAttribute(el, "fromkey"));
+                    ((RegistryTask) task).setFromKey(getAttribute(el, "fromkey"));
                     ((RegistryTask) task).setKey(requireAttribute(el, "tokey"));
                     readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
+                    readAndAddEntries(el, (SingleConfigurableTask) task);
                     break;
 
                 default:
@@ -697,7 +706,8 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             }
             else if (task instanceof RegistryTask)
             {
-                entry.setSection(el.getAttribute("key"));
+            	String subkey = el.getAttribute("key");
+            	entry.setSection(subkey == null ? ((RegistryTask)task).getKey() : ((RegistryTask)task).getKey() + Reg.PATH_SEPARATOR + subkey);
                 entry.setKey(el.getAttribute("value"));
                 entry.setValue(getAttribute(el, "data"));
             }
@@ -824,22 +834,22 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     fs.setExcludes(strattr);
                 }
 
-                String boolval = getAttribute(f, "casesensitive");
-                if (boolval != null)
+                Boolean boolAttr = getBooleanAttribute(f, "casesensitive");
+                if (boolAttr != null)
                 {
-                    fs.setCaseSensitive(Boolean.parseBoolean(boolval));
+                    fs.setCaseSensitive(boolAttr);
                 }
 
-                boolval = getAttribute(f, "defaultexcludes");
-                if (boolval != null)
+                boolAttr = getBooleanAttribute(f, "defaultexcludes");
+                if (boolAttr != null)
                 {
-                    fs.setDefaultexcludes(Boolean.parseBoolean(boolval));
+                    fs.setDefaultexcludes(boolAttr);
                 }
 
-                boolval = getAttribute(f, "followsymlinks");
-                if (boolval != null)
+                boolAttr = getBooleanAttribute(f, "followsymlinks");
+                if (boolAttr != null)
                 {
-                    fs.setFollowSymlinks(Boolean.parseBoolean(boolval));
+                    fs.setFollowSymlinks(boolAttr);
                 }
 
                 readAndAddIncludes(f, fs);
@@ -883,10 +893,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 FileNameMapper mapper = (FileNameMapper) Class.forName(mappertype.getImplementation()).newInstance();
                 if (mapper instanceof GlobPatternMapper)
                 {
-                    String boolval = getAttribute(f, "casesensitive");
-                    if (boolval != null)
+                    Boolean boolAttr = getBooleanAttribute(f, "casesensitive");
+                    if (boolAttr != null)
                     {
-                        ((GlobPatternMapper) mapper).setCaseSensitive(Boolean.parseBoolean(boolval));
+                        ((GlobPatternMapper) mapper).setCaseSensitive(boolAttr);
                     }
                     mapper.setFrom(requireAttribute(f, "from"));
                     mapper.setTo(requireAttribute(f, "to"));
@@ -1289,6 +1299,35 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         }
         return value;
     }
+    
+    /**
+     * Call getAttribute on an element, and return the boolean representation of the value.
+     * The value is considered to represent {@code true} if it is set to "true", "yes", or "on".
+     * 
+     * @param element the element containing the attribute
+     * @param attribute the name of the attribute to evaluate
+     * @return true, if the value is "true", "yes", or "on"; false if any other value (including
+     * the empty string); null if the attribute was not specified
+     */
+    protected Boolean getBooleanAttribute(IXMLElement element, String attribute)
+    		throws InstallerException
+	{
+    	String value = getAttribute(element, attribute);
+    	if ( value == null)
+    	{ 
+    		return null;
+    	}
+    	else if	(value.equalsIgnoreCase("true") || 
+    			 value.equalsIgnoreCase("yes") || 
+    			 value.equalsIgnoreCase("on"))
+    	{
+    		return true;
+    	}
+    	else
+    	{
+    		return false;
+    	}
+	}
 
     /**
      * Create parse error with consistent messages. Includes file name.
