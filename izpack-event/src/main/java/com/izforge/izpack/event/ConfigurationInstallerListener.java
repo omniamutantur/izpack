@@ -58,13 +58,14 @@ import com.izforge.izpack.core.variable.RegistryValue;
 import com.izforge.izpack.core.variable.ZipEntryConfigFileValue;
 import com.izforge.izpack.core.variable.filters.LocationFilter;
 import com.izforge.izpack.core.variable.filters.RegularExpressionFilter;
+import com.izforge.izpack.installer.data.UninstallData;
 import com.izforge.izpack.util.FileUtil;
 import com.izforge.izpack.util.config.ConfigFileTask;
 import com.izforge.izpack.util.config.ConfigurableFileCopyTask;
 import com.izforge.izpack.util.config.ConfigurableTask;
 import com.izforge.izpack.util.config.IniFileCopyTask;
 import com.izforge.izpack.util.config.OptionFileCopyTask;
-import com.izforge.izpack.util.config.RegistryTask;
+import com.izforge.izpack.util.config.RegistryConfigTask;
 import com.izforge.izpack.util.config.SingleConfigurableTask;
 import com.izforge.izpack.util.config.SingleConfigurableTask.Entry;
 import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.LookupType;
@@ -115,6 +116,8 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     private SpecHelper spec;
 
     private VariableSubstitutor substlocal;
+    
+    private UninstallData uninstallData;
 
 
     /**
@@ -125,12 +128,13 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
      * @param replacer    the variable replacer
      * @param notifiers   the progress notifiers
      */
-    public ConfigurationInstallerListener(InstallData installData, Resources resources,
+    public ConfigurationInstallerListener(InstallData installData, UninstallData uninstallData, Resources resources,
                                           VariableSubstitutor replacer, ProgressNotifiers notifiers)
     {
         super(installData, notifiers);
         this.resources = resources;
         this.replacer = replacer;
+        this.uninstallData = uninstallData;
     }
 
     /**
@@ -653,10 +657,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     ((SingleXmlFileMergeTask) task).setConfigFile(
                             FileUtil.getAbsoluteFile(getAttribute(el, "configfile"), idata.getInstallPath()));
                     
-                    Boolean boolAttr = (getBooleanAttribute(el, "cleanup"));
-                	if (boolAttr != null)
+                    Boolean cleanup = (getBooleanAttribute(el, "cleanup"));
+                	if (cleanup != null)
             		{
-                		((SingleXmlFileMergeTask) task).setCleanup(boolAttr);
+                		((SingleXmlFileMergeTask) task).setCleanup(cleanup);
             		}
                 	
                 	List<FileSet> fslist = readFileSets(el);
@@ -668,10 +672,15 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     break;
 
                 case REGISTRY:
-                    task = new RegistryTask();
-                    ((RegistryTask) task).setFromKey(getAttribute(el, "fromkey"));
-                    ((RegistryTask) task).setKey(requireAttribute(el, "tokey"));
+                    task = new RegistryConfigTask();
+                    ((RegistryConfigTask) task).setFromKey(getAttribute(el, "fromkey"));
+                    ((RegistryConfigTask) task).setKey(requireAttribute(el, "tokey"));
                     readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
+                    Boolean uninstall = getBooleanAttribute(el, "uninstall");
+                    if (uninstall != null)
+                    {
+                    	((RegistryConfigTask)task).setUninstall(true);
+                    }
                     readAndAddEntries(el, (SingleConfigurableTask) task);
                     break;
 
@@ -704,10 +713,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 entry.setKey(el.getAttribute("key"));
                 entry.setValue(getAttribute(el, "value"));
             }
-            else if (task instanceof RegistryTask)
+            else if (task instanceof RegistryConfigTask)
             {
             	String subkey = el.getAttribute("key");
-            	entry.setSection(subkey == null ? ((RegistryTask)task).getKey() : ((RegistryTask)task).getKey() + Reg.PATH_SEPARATOR + subkey);
+            	entry.setSection(subkey == null ? ((RegistryConfigTask)task).getKey() : ((RegistryConfigTask)task).getKey() + Reg.PATH_SEPARATOR + subkey);
                 entry.setKey(el.getAttribute("value"));
                 entry.setValue(getAttribute(el, "data"));
             }

@@ -22,6 +22,8 @@
 
 package com.izforge.izpack.util.config;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
@@ -37,50 +39,39 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.LookupType;
+import com.izforge.izpack.util.config.MultiMapConfigFileTask.Entry.LookupType;
 import com.izforge.izpack.util.config.base.BasicProfile;
 import com.izforge.izpack.util.config.base.Config;
 import com.izforge.izpack.util.config.base.Configurable;
 import com.izforge.izpack.util.config.base.Ini;
+import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.OptionMap;
 import com.izforge.izpack.util.config.base.Options;
 import com.izforge.izpack.util.config.base.Reg;
 
-public abstract class SingleConfigurableTask implements ConfigurableTask
+public abstract class MultiMapConfigFileTask<K, V> extends ConfigFileTask
 {
-    private static final Logger logger = Logger.getLogger(SingleConfigurableTask.class.getName());
+    private static final Logger logger = Logger.getLogger(MultiMapConfigFileTask.class.getName());
 
-    private boolean patchPreserveEntries = true;
+    protected boolean patchPreserveEntries = true;
 
-    private boolean patchPreserveValues = true;
+    protected boolean patchPreserveValues = true;
 
-    private boolean patchResolveVariables = false;
-
-    protected boolean createConfigurable = true;
-    
-    protected boolean overwrite = false;
+    protected boolean patchResolveVariables = false;
 
     /*
      * ini4j settings
      */
-    private boolean escape = Config.getGlobal().isEscape();
-    private boolean escapeNewLine = Config.getGlobal().isEscapeNewline();
-    private boolean headerComment = false;
-    private boolean emptyLines = true;
-    private boolean autoNumbering = true;
-    private String operator = Config.getGlobal().getOperator();
+    protected boolean escape = Config.getGlobal().isEscape();
+    protected boolean escapeNewLine = Config.getGlobal().isEscapeNewline();
+    protected boolean useHeaderComment = false;
+    protected boolean emptyLines = true;
+    protected boolean autoNumbering = true;
+    protected String operator = Config.getGlobal().getOperator();
 
+    protected Vector<Entry> entries = new Vector<Entry>();
 
-    /*
-     * Internal variables.
-     */
-
-    protected Configurable configurable;
-
-    protected Configurable fromConfigurable;
-
-    private Vector<Entry> entries = new Vector<Entry>();
-
+    
     /**
      * Whether to preserve equal entries but not necessarily their values from an old configuration,
      * if they can be found (default: true).
@@ -108,24 +99,19 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     }
 
     /**
-     * Whether variables should be resolved during patching.
+     * Whether ini4j-style variables should be resolved during patching.
      *
-     * @param resolve - true to resolve in-value variables
+     * @param resolve true to resolve in-value variables
      */
     public void setPatchResolveVariables(boolean resolve)
     {
         patchResolveVariables = resolve;
     }
-    
-    public void setOverwrite(boolean overwrite)
-    {
-    	this.overwrite = overwrite;
-    }
 
     /**
      * Whether to accept escape sequences
      *
-     * @param escape - true to resolve escape sequences
+     * @param escape true to resolve escape sequences
      */
     public void setEscape(boolean escape)
     {
@@ -135,7 +121,7 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     /**
      * Whether to interpret escape at the end of line for joining lines
      *
-     * @param escape - true to interpret escape at the end of line for joining lines
+     * @param escapeNewLine true to interpret escape at the end of line for joining lines
      */
     public void setEscapeNewLine(boolean escapeNewLine)
     {
@@ -143,19 +129,19 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     }
 
     /**
-     * Whether to use header comments
+     * Whether to use header comments.
      *
-     * @param headerComment - true to use header comments
+     * @param useHeaderComment true to use header comments
      */
-    public void setHeaderComment(boolean headerComment)
+    public void setHeaderComment(boolean useHeaderComment)
     {
-        this.headerComment = headerComment;
+        this.useHeaderComment = useHeaderComment;
     }
 
     /**
-     * Whether to preserve empty lines
+     * Whether to preserve empty lines.
      *
-     * @param emptyLines - true to preserve empty lines
+     * @param emptyLines true to preserve empty lines
      */
     public void setEmptyLines(boolean emptyLines)
     {
@@ -166,7 +152,7 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
      * Whether to use property auto numbering (for property names
      * with a trailing '.')
      *
-     * @param autoNumbering - true to use property auto numbering
+     * @param autoNumbering true to use property auto numbering
      */
     public void setAutoNumbering(boolean autoNumbering)
     {
@@ -174,41 +160,32 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
     }
 
     /**
-     * The operator to use for separating name and value
+     * The operator to use for separating name and value.
      *
-     * @param operator - an operator string
+     * @param operator an operator string
      */
     public void setOperator(String operator)
     {
         this.operator = operator;
     }
 
-    /**
-     * Whether the configuration file or registry root entry should be created if it doesn't already
-     * exist (default: true).
-     *
-     * @param create - whether to create a new configuration file or registry root entry
-     */
-    public void setCreate(boolean create)
-    {
-        createConfigurable = create;
-    }
-
     @Override
-    public void execute() throws Exception
+    public void doFileOperation(File srcFile, File patchFile, File destFile) throws Exception
     {
-        Config.getGlobal().setHeaderComment(headerComment);
+    	//TODO: use a unique Config instance to make thread-safe
+        Config.getGlobal().setHeaderComment(useHeaderComment);
         Config.getGlobal().setEmptyLines(emptyLines);
         Config.getGlobal().setAutoNumbering(autoNumbering);
         Config.getGlobal().setEscape(escape);
         Config.getGlobal().setEscapeNewline(escapeNewLine);
         Config.getGlobal().setOperator(operator);
-        checkAttributes();
-        readConfigurable();
-        readSourceConfigurable();
-        patchConfigurable();
+        
+        MultiMap<K, V> srcConfig = readFromFile(srcFile);
+        MultiMap<K, V> patchConfig = readFromFile(patchFile);
+        patch(srcConfig, patchConfig);
+        //TODO: refactor this next method
         executeNestedEntries();
-        writeConfigurable();
+        writeToFile(patchConfig, destFile);
     }
 
     private String getValueFromOptionMap(OptionMap map, String key, int index)
@@ -445,120 +422,15 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
             }
         }
     }
-
-    private void patchConfigurable() throws Exception
-    {
-        if (fromConfigurable != null)
-        {
-            Set<String> toKeySet;
-            Set<String> fromKeySet;
-            if (configurable instanceof Options)
-            {
-                toKeySet = ((Options) configurable).keySet();
-                fromKeySet = ((Options) fromConfigurable).keySet();
-                for (String key : fromKeySet)
-                {
-                    String fromValue = (patchResolveVariables ? ((Options) fromConfigurable)
-                            .fetch(key)
-                            : ((Options) fromConfigurable).get(key));
-                    if (patchPreserveEntries && !toKeySet.contains(key))
-                    {
-                        logger.fine("Preserve option file entry \"" + key + "\"");
-                        ((Options) configurable).add(key, fromValue);
-                    }
-                    else if (patchPreserveValues && ((Options) configurable).keySet().contains(key))
-                    {
-                        logger.fine("Preserve option value for key \"" + key + "\": \"" + fromValue
-                                + "\"");
-                        ((Options) configurable).put(key, fromValue);
-                    }
-                }
-            }
-            else if (configurable instanceof Ini)
-            {
-                Set<String> sectionKeySet = ((Ini) configurable).keySet();
-                Set<String> fromSectionKeySet = ((Ini) fromConfigurable).keySet();
-                for (String fromSectionKey : fromSectionKeySet)
-                {
-                    if (sectionKeySet.contains(fromSectionKey))
-                    {
-                        Ini.Section fromSection = ((Ini) fromConfigurable)
-                                .get(fromSectionKey);
-                        Ini.Section toSection = ((Ini) configurable)
-                                .get(fromSectionKey);
-                        fromKeySet = fromSection.keySet();
-                        toKeySet = null;
-                        if (toSection != null) toKeySet = toSection.keySet();
-                        for (String fromKey : fromKeySet)
-                        {
-                            if (toSection == null)
-                            {
-                                logger.fine("Adding new INI section [" + fromSectionKey + "]");
-                                toSection = ((Ini) configurable).add(fromSectionKey);
-                            }
-                            String fromValue = (patchResolveVariables ? fromSection
-                                    .fetch(fromKey) : fromSection.get(fromKey));
-                            if (patchPreserveEntries && !toKeySet.contains(fromKey))
-                            {
-                                logger.fine("Preserve INI file entry \"" + fromKey
-                                        + "\" in section [" + fromSectionKey + "]: " + fromValue);
-                                toSection.add(fromKey, fromValue);
-                            }
-                            else if (patchPreserveValues && toKeySet.contains(fromKey))
-                            {
-                                logger.fine("Preserve INI file entry value for key \"" + fromKey
-                                        + "\" in section [" + fromSectionKey + "]: " + fromValue);
-                                toSection.put(fromKey, fromValue);
-                            }
-                        }
-                    }
-                }
-            }
-            else if (configurable instanceof Reg)
-            {
-                Set<String> rootKeySet = ((Reg) configurable).keySet();
-                Set<String> fromRootKeySet = ((Reg) fromConfigurable).keySet();
-                for (String fromRootKey : fromRootKeySet)
-                {
-                    if (rootKeySet.contains(fromRootKey))
-                    {
-                        Reg.Key fromRegKey = ((Reg) fromConfigurable).get(fromRootKey);
-                        Reg.Key toRegKey = ((Reg) configurable).get(fromRootKey);
-                        fromKeySet = fromRegKey.keySet();
-                        toKeySet = null;
-                        if (toRegKey != null) toKeySet = toRegKey.keySet();
-                        for (String fromKey : fromKeySet)
-                        {
-                            if (toRegKey == null)
-                            {
-                                logger.fine("Adding new registry root key " + fromRootKey);
-                                toRegKey = ((Reg) configurable).add(fromRootKey);
-                            }
-                            String fromValue = (patchResolveVariables ? fromRegKey
-                                    .fetch(fromKey) : fromRegKey.get(fromKey));
-                            if (patchPreserveEntries && !toKeySet.contains(fromKey))
-                            {
-                                logger.fine("Preserve registry value " + fromKey + " under root key "
-                                        + fromRootKey + ": " + fromValue);
-                                toRegKey.add(fromKey, fromValue);
-                            }
-                            else if (patchPreserveValues && toKeySet.contains(fromKey))
-                            {
-                                logger.fine("Preserve registry data for value " + fromKey
-                                        + " in root key " + fromRootKey + ": " + fromValue);
-                                toRegKey.put(fromKey, fromValue);
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                throw new Exception("Unknown configurable type class: "
-                        + configurable.getClass().getName());
-            }
-        }
-    }
+    
+    /**
+     * Patches one config from another, based on configured task attributes.
+     * 
+     * @param srcConfig the original config from which to preserve data
+     * @param patchConfig the new config to which the old data should be 
+     * merged
+     */
+    protected abstract void patch(MultiMap<K, V> srcConfig, MultiMap<K, V> patchConfig);
 
     private void executeNestedEntries() throws Exception
     {
@@ -578,13 +450,23 @@ public abstract class SingleConfigurableTask implements ConfigurableTask
         }
     }
 
-    protected abstract void checkAttributes() throws Exception;
+    /**
+     * Construct a Configurable representation by parsing a file.
+     * 
+     * @param configFile the config file to parse
+     * @return the Configurable representation of the config file
+     * @throws IOException in the event of an error parsing the file
+     */
+    protected abstract MultiMap<K, V> readFromFile(File configFile) throws IOException;
 
-    protected abstract void readSourceConfigurable() throws Exception;
-
-    protected abstract void readConfigurable() throws Exception;
-
-    protected abstract void writeConfigurable() throws Exception;
+    /**
+     * Write a Configurable representation to a formatted config file.
+     * 
+     * @param config the Configurable representation to write
+     * @param destFile the file to which to write the formatted config
+     * @throws IOException in the event of an error writing the config file
+     */
+    protected abstract void writeToFile(MultiMap<K, V> config, File destFile) throws IOException;
 
     public void addEntry(Entry entry)
     {

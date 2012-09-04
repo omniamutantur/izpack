@@ -24,196 +24,111 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.izforge.izpack.util.file.DirectoryScanner;
-import com.izforge.izpack.util.file.types.FileSet;
 import com.izforge.izpack.util.xmlmerge.AbstractXmlMergeException;
 import com.izforge.izpack.util.xmlmerge.ConfigurationException;
 import com.izforge.izpack.util.xmlmerge.XmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.ConfigurableXmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.PropertyXPathConfigurer;
 
-public class SingleXmlFileMergeTask implements ConfigurableTask
+public class SingleXmlFileMergeTask extends MergeableConfigFileTask
 {
     private static final Logger logger = Logger.getLogger(SingleXmlFileMergeTask.class.getName());
 
     protected File origfile;
     protected File patchfile;
     protected File tofile;
-    protected File conffile;
+    protected File confFile;
     protected boolean cleanup;
 
     protected Properties confProps = new Properties();
 
 
-    public void setOriginalFile(File origfile)
-    {
-        this.origfile = origfile;
-    }
-
-
-    public void setPatchFile(File patchfile)
-    {
-        this.patchfile = patchfile;
-    }
-
-
-    public void setToFile(File tofile)
-    {
-        this.tofile = tofile;
-    }
-
     public void setConfigFile(File confFile)
     {
-        this.conffile = confFile;
+        this.confFile = confFile;
     }
 
-    /**
-     * Whether to delete the patchfiles after the operation
-     * @param cleanup True, if the patchfiles should be deleted after the operation
-     */
-    public void setCleanup(boolean cleanup)
-    {
-        this.cleanup = cleanup;
-    }
 
     /**
-    * List of file sets.
-    */
-    List<FileSet> filesets = new ArrayList<FileSet>();
-
-    /**
-    * Adds a file set.
-    * @param fileset The file set to add
-    */
-    public void addFileSet(FileSet fileset) {
-        filesets.add(fileset);
-    }
-
-    /**
-     * Adds a XML merge configuration property (XPath)
-     * @param key The property key
-     * @param value The property value
+     * Adds an XML merge configuration property (XPath expression).
+     * 
+     * @param key the property key
+     * @param value the property value
      */
     public void addProperty(String key, String value) {
         confProps.setProperty(key, value);
     }
 
-    /**
-    * Validates the configuration and destination files and the file sets.
-    */
-    public void validate() throws Exception {
-        if (tofile == null) {
-            throw new Exception("XML merge output file not set");
-        }
-        if (filesets.isEmpty() && patchfile == null) {
-            throw new Exception("No XML merge patch files given at all");
-        }
-        if (origfile == null) {
-            throw new Exception("No XML merge patch files given at all");
-        }
-        if (!confProps.isEmpty() && conffile != null) {
+   
+    @Override
+    public void validateAttributes() throws Exception {
+        if (!confProps.isEmpty() && confFile != null) {
             throw new Exception("Using both XML merge configuration file and explicit merge properties not allowed");
         }
+        super.validateAttributes();
     }
 
     @Override
     public void execute() throws Exception {
-        validate();
-
-        // Get the files to merge
-        LinkedList<File> filesToMerge = new LinkedList<File>();
-
-        if (origfile != null)
-        {
-            if (origfile.exists())
+    	try
+    	{
+	        if (confFile != null)
+	        {
+	            InputStream configIn = null;
+	            try
+	            {
+	                configIn = new FileInputStream(confFile);
+	                confProps.load(configIn);
+	            } 
+	            finally 
+	            {
+	                if (configIn != null) 
+	                {
+	                	configIn.close();
+	                }
+	            }
+	        }
+    	}
+    	catch (Exception e)
+    	{
+            if (failonerror)
             {
-                filesToMerge.add(origfile);
+                throw e;
             }
             else
             {
-                logger.warning("XML merge skipped, target file "+origfile+" not found");
-                return;
-            }
-        }
-        else
-        {
-            logger.warning("XML merge skipped, target file not defined");
-            return;
-        }
+                logger.warning(e.getMessage());
+                return; //skip task execution
+            }    		
+    	}
+    	
+    	super.execute();
+    }
 
-        if (patchfile != null && patchfile.exists())
-            filesToMerge.add(patchfile);
-
-        for (FileSet fs : filesets) {
-            DirectoryScanner ds = fs.getDirectoryScanner();
-            String[] includedFiles = ds.getIncludedFiles();
-            for (String includedFile : includedFiles)
-            {
-                filesToMerge.add(new File(ds.getBasedir(), includedFile));
-            }
-        }
-
-        if (filesToMerge.size() < 2)
-        {
-            logger.warning("XML merge skipped, not enough XML input files to merge");
-            return;
-        }
-
-        if (conffile != null) {
-            InputStream configIn = null;
-            try {
-                configIn = new FileInputStream(conffile);
-                confProps.load(configIn);
-            } catch (IOException e) {
-                throw new Exception(e);
-            } finally {
-                if (configIn != null) {
-                    try {
-                        configIn.close();
-                    } catch (IOException e) {
-                        logger.log(Level.WARNING,
-                                "Error closing file '" + conffile + "': " + e.getMessage(),
-                                e);
-                    }
-                }
-            }
-        }
-
+	@Override
+	protected void doFileMergeOperation() throws Exception {
         // Create the XmlMerge instance and execute the merge
         XmlMerge xmlMerge;
-        try {
-            xmlMerge = new ConfigurableXmlMerge(new PropertyXPathConfigurer(confProps));
-        } catch (ConfigurationException e) {
-            throw new Exception(e);
-        }
-
-        try {
-            xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), tofile);
-        } catch (AbstractXmlMergeException e) {
-            throw new Exception(e);
-        }
-
-        if (cleanup)
+        try
         {
-            for (File file : filesToMerge)
-            {
-                if (file.exists() && !file.equals(tofile))
-                {
-                    if (!file.delete())
-                    {
-                        logger.warning("File " + file + " could not be cleant up");
-                    }
-                }
-            }
+            xmlMerge = new ConfigurableXmlMerge(new PropertyXPathConfigurer(confProps));
+        } 
+        catch (ConfigurationException e)
+        {
+            throw new Exception(e);
         }
-    }
+
+        try 
+        {
+            xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), tofile);
+        }
+        catch (AbstractXmlMergeException e)
+        {
+            throw new Exception(e);
+        }
+	}
 }

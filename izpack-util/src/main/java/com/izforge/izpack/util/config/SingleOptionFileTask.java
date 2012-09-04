@@ -24,112 +24,75 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.logging.Logger;
 
+import com.izforge.izpack.util.config.base.MultiMap;
+import com.izforge.izpack.util.config.base.OptionMap;
 import com.izforge.izpack.util.config.base.Options;
 
-public class SingleOptionFileTask extends ConfigFileTask
+public class SingleOptionFileTask extends MultiMapConfigFileTask<String, String>
 {
     private static final Logger logger = Logger.getLogger(SingleOptionFileTask.class.getName());
 
     @Override
-    protected void readSourceConfigurable() throws Exception
+    protected MultiMap<String, String> readFromFile(File configFile) throws IOException
     {
-        if (oldFile != null)
+    	MultiMap<String, String> config;
+        if (configFile != null && configFile.exists())
         {
-            try
-            {
-                if (!oldFile.exists())
-                {
-                    logger.warning("Options file " + oldFile.getAbsolutePath()
-                            + " to patch from could not be found, no patches will be applied");
-                    return;
-                }
-                logger.fine("Loading options file: " + oldFile.getAbsolutePath());
-                // Configuration file type must be the same as the target type
-                fromConfigurable = new Options(this.oldFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception(ioe.toString());
-            }
-        }
-    }
-
-    @Override
-    protected void readConfigurable() throws Exception
-    {
-        if (newFile != null && newFile.exists())
-        {
-            try
-            {
-                logger.fine("Loading original configuration file: " + newFile.getAbsolutePath());
-                configurable = new Options(newFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception("Error opening original configuration file: " + ioe.toString());
-            }
-        }
-        else if (toFile != null && toFile.exists())
-        {
-            try
-            {
-                logger.fine("Loading target configuration file: " + toFile.getAbsolutePath());
-                configurable = new Options(toFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception("Error opening target configuration file: " + ioe.toString());
-            }
+            logger.fine("Loading options file: " + configFile.getAbsolutePath());
+            config = new Options(configFile);
         }
         else
         {
-            configurable = new Options();
+        	config = new Options();
         }
+        return config;
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ClassCastException if {@code config} cannot be cast to 
+     * {@link Options} 
+     */
     @Override
-    protected void writeConfigurable() throws Exception
+    protected void writeToFile(MultiMap<String, String> config, File destFile) throws IOException
     {
-
-        try
-        {
-            if (!toFile.exists())
-            {
-                if (createConfigurable)
-                {
-                    File parent = toFile.getParentFile();
-                    if (parent != null && !parent.exists())
-                    {
-                        parent.mkdirs();
-                    }
-                    logger.fine("Creating empty properties file: " + toFile.getAbsolutePath());
-                    toFile.createNewFile();
-                }
-                else
-                {
-                    logger.warning("Options file " + toFile.getAbsolutePath()
-                            + " did not exist and is not allowed to be created");
-                    return;
-                }
-            }
-            Options opts = (Options) configurable;
-            opts.setFile(toFile);
-            opts.setComment(getComment());
-            opts.store();
-        }
-        catch (IOException ioe)
-        {
-            throw new Exception(ioe);
-        }
-
-        if (cleanup && oldFile.exists())
-        {
-            if (!oldFile.delete())
-            {
-                logger.warning("File " + oldFile + " could not be cleant up");
-            }
-        }
+        Options opts = (Options) config;
+        opts.setFile(destFile);
+        opts.setComment(headerComment);
+        opts.store();
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ClassCastException if {@link #patchResolveVariables} is 
+     * {@code true}, and {@code srcConfig} cannot be cast to {@link OptionMap}
+     */
+	@Override
+	protected void patch(MultiMap<String, String> srcConfig, MultiMap<String, String> patchConfig)
+	{
+        Set<String> toKeySet;
+        Set<String> fromKeySet;
+        toKeySet = patchConfig.keySet();
+        fromKeySet = srcConfig.keySet();
+        for (String key : fromKeySet)
+        {
+            String fromValue = (patchResolveVariables ? ((OptionMap)srcConfig).fetch(key) : srcConfig.get(key));
+            if (patchPreserveEntries && !toKeySet.contains(key))
+            {
+                logger.fine("Preserve key \"" + key + "\"");
+                patchConfig.add(key, fromValue);
+            }
+            else if (patchPreserveValues && patchConfig.keySet().contains(key))
+            {
+                logger.fine("Preserve value for key \"" + key + "\": \"" + fromValue
+                        + "\"");
+                patchConfig.put(key, fromValue);
+            }
+        }
+	}
 }

@@ -24,112 +24,94 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import com.izforge.izpack.util.config.base.Ini;
+import com.izforge.izpack.util.config.base.MultiMap;
+import com.izforge.izpack.util.config.base.Profile;
+import com.izforge.izpack.util.config.base.Profile.Section;
 
-public class SingleIniFileTask extends ConfigFileTask
+public class SingleIniFileTask extends MultiMapConfigFileTask<String, Profile.Section> 
 {
     private static final Logger logger = Logger.getLogger(SingleIniFileTask.class.getName());
+    
 
-    @Override
-    protected void readSourceConfigurable() throws Exception
-    {
-        if (oldFile != null)
+	@Override
+	protected MultiMap<String, Section> readFromFile(File configFile) throws IOException
+	{
+    	MultiMap<String, Section> config;
+        if (configFile != null && configFile.exists())
         {
-            try
-            {
-                if (!oldFile.exists())
-                {
-                    logger.warning("INI file " + oldFile.getAbsolutePath()
-                            + " to patch from could not be found, no patches will be applied");
-                    return;
-                }
-                logger.fine("Loading INI file: " + oldFile.getAbsolutePath());
-                // Configuration file type must be the same as the target type
-                fromConfigurable = new Ini(this.oldFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception(ioe.toString());
-            }
-        }
-    }
-
-    @Override
-    protected void readConfigurable() throws Exception
-    {
-        if (newFile != null && newFile.exists())
-        {
-            try
-            {
-                logger.fine("Loading original configuration file: " + newFile.getAbsolutePath());
-                configurable = new Ini(newFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception("Error opening original configuration file: " + ioe.toString());
-            }
-        }
-        else if (toFile != null && toFile.exists())
-        {
-            try
-            {
-                logger.fine("Loading target configuration file: " + toFile.getAbsolutePath());
-                configurable = new Ini(toFile);
-            }
-            catch (IOException ioe)
-            {
-                throw new Exception("Error opening target configuration file: " + ioe.toString());
-            }
+            logger.fine("Loading INI file: " + configFile.getAbsolutePath());
+            config = new Ini(configFile);
         }
         else
         {
-            configurable = new Ini();
+        	config = new Ini();
         }
+        return config;
     }
 
-    @Override
-    protected void writeConfigurable() throws Exception
-    {
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @throws ClassCastException if {@code config} cannot be cast to
+	 * {@link Ini}
+	 */
+	@Override
+	protected void writeToFile(MultiMap<String, Section> config, File destFile) throws IOException
+	{
+        Ini ini = (Ini) config;
+        ini.setFile(destFile);
+        ini.setComment(headerComment);
+        ini.store();		
+	}
 
-        try
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @throws ClassCastException if {@code patchConfig} cannot be cast to
+	 * {@link Profile}
+	 */
+	@Override
+	protected void patch(MultiMap<String, Section> srcConfig, MultiMap<String, Section> patchConfig)
+	{
+        Set<String> toKeySet;
+        Set<String> fromKeySet;
+        Set<String> sectionKeySet = patchConfig.keySet();
+        Set<String> fromSectionKeySet = srcConfig.keySet();
+        for (String fromSectionKey : fromSectionKeySet)
         {
-            if (!toFile.exists())
+            if (sectionKeySet.contains(fromSectionKey))
             {
-                if (createConfigurable)
+                Ini.Section fromSection = srcConfig.get(fromSectionKey);
+                Ini.Section toSection = patchConfig.get(fromSectionKey);
+                fromKeySet = fromSection.keySet();
+                toKeySet = null;
+                if (toSection != null) toKeySet = toSection.keySet();
+                for (String fromKey : fromKeySet)
                 {
-                    File parent = toFile.getParentFile();
-                    if (parent != null && !parent.exists())
+                    if (toSection == null)
                     {
-                        parent.mkdirs();
+                        logger.fine("Adding new section [" + fromSectionKey + "]");
+                        toSection = ((Profile)patchConfig).add(fromSectionKey);
                     }
-                    logger.fine("Creating empty INI file: " + toFile.getAbsolutePath());
-                    toFile.createNewFile();
-                }
-                else
-                {
-                    logger.warning("INI file " + toFile.getAbsolutePath()
-                            + " did not exist and is not allowed to be created");
-                    return;
+                    String fromValue = (patchResolveVariables ? fromSection.fetch(fromKey) : fromSection.get(fromKey));
+                    if (patchPreserveEntries && !toKeySet.contains(fromKey))
+                    {
+                        logger.fine("Preserve key \"" + fromKey
+                                + "\" in section [" + fromSectionKey + "]: " + fromValue);
+                        toSection.add(fromKey, fromValue);
+                    }
+                    else if (patchPreserveValues && toKeySet.contains(fromKey))
+                    {
+                        logger.fine("Preserve value for key \"" + fromKey
+                                + "\" in section [" + fromSectionKey + "]: " + fromValue);
+                        toSection.put(fromKey, fromValue);
+                    }
                 }
             }
-            Ini ini = (Ini) configurable;
-            ini.setFile(toFile);
-            ini.setComment(getComment());
-            ini.store();
-        }
-        catch (IOException ioe)
-        {
-            throw new Exception(ioe);
-        }
-
-        if (cleanup && oldFile.exists())
-        {
-            if (!oldFile.delete())
-            {
-                logger.warning("File " + oldFile + " could not be cleant up");
-            }
-        }
-    }
+        }		
+	}
 }
