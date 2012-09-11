@@ -123,7 +123,10 @@ public class RegistryConfigTask extends SingleIniFileTask
 	        Reg key = readFromRegistry(srcKey, false);
 	        Reg destKey = readFromRegistry(toKey, create);
 	        patch(key, destKey);
-			//TODO: execute nested entries
+			for (MultiMapConfigEntry entry : entries)
+			{
+				processEntry(entry, key, destKey);
+			}
 	        writeToRegistry(destKey);
 		}
     }
@@ -141,12 +144,23 @@ public class RegistryConfigTask extends SingleIniFileTask
     		{
     			throw new Exception("Only one of tokey and tofile/<fileset> may be set.");    			
     		}
+    		else
+    		{
+    			super.validateAttributes();
+    		}
     	}
     	else
     	{
     		if (toKey == null)
     		{
     			throw new Exception("One of tokey and tofile/<fileset> must be set.");
+    		}
+    		else
+    		{
+    			for (MultiMapConfigEntry entry : entries)
+    			{
+    				entry.validateAttributes();
+    			}
     		}
     	}
 	}

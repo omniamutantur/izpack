@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import com.izforge.izpack.util.config.base.BasicProfile;
 import com.izforge.izpack.util.config.base.Ini;
 import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.Profile;
@@ -114,4 +115,85 @@ public class SingleIniFileTask extends MultiMapConfigFileTask<String, Profile.Se
             }
         }		
 	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * The {@code lookupValue} and {@loookupType} arguments are not applicable.
+	 * 
+	 * @throws ClassCastException if {@config} is not a type of {@link Profile}
+	 * 
+	 */
+	@Override
+	protected void deleteEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config) throws Exception {
+		((Profile)config).remove(entry.getSection(), entry.getKey());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 *  @throws	ClassCastException if either {@code src} or {@code target} is
+	 *  not of type {@link Profile}
+	 */
+	@Override
+	protected void keepEntry(MultiMapConfigEntry entry, MultiMap<String, Section> src, MultiMap<String, Section> target) throws Exception {
+        Profile.Section fromSection = ((Profile) src).get(entry.getSection());
+        Profile.Section toSection = ((Profile) target).get(entry.getSection());
+        if (fromSection != null)
+        {
+            if (toSection == null)
+            {
+                logger.fine("Adding new section [" + entry.getSection() + "]");
+                toSection = ((Profile) target).add(entry.getSection());
+            }
+            if (toSection != null)
+            {
+                String fromValue = (patchResolveVariables ? fromSection
+                        .fetch(entry.getKey()) : fromSection.get(entry.getKey()));
+                if (!toSection.containsKey(entry.getKey()))
+                {
+                    logger.fine("Preserve file entry \"" + entry.getKey()
+                            + "\" in section [" + entry.getSection() + "]: " + fromValue);
+                    toSection.add(entry.getKey(), fromValue);
+                }
+                else
+                {
+                    logger.fine("Preserve file entry value for key \"" + entry.getKey()
+                            + "\" in section [" + entry.getSection() + "]: " + fromValue);
+                    toSection.put(entry.getKey(), fromValue);
+                }
+            }
+        }
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @throws ClassCastException if {@code config} is not a type of 
+	 * {@link Profile}
+	 */
+	@Override
+	protected void insertEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config)
+			throws Exception {
+        String oldValue = getValueFromProfile((Profile)config, entry.getSection(), entry.getKey());
+		((Profile)config).put(entry.getSection(), entry.getKey(), entry.calculateValue(oldValue));
+	}
+	
+	
+    /**
+     * Resolves the value of the {@code key} in the specified {@code section}
+     * in {@code profile}. The value of {@code key} may contain ini4j 
+     * variables if {@link #patchResolveVariables} is {@code true}.
+     * 
+     * @param profile the profile to search
+     * @param section the location of the given key
+     * @param key the key to resolve
+     * @return the resolved value
+     */
+    protected String getValueFromProfile(Profile profile, String section, String key)
+    {
+        return patchResolveVariables ? 
+        		profile.fetch(section, key) 
+        		: profile.get(section, key);
+    }
 }
