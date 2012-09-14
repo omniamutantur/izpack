@@ -29,8 +29,9 @@ import java.util.logging.Logger;
 import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.Reg;
 import com.izforge.izpack.util.config.base.Profile.Section;
+import com.izforge.izpack.util.config.base.Registry;
 
-public class RegistryConfigTask extends SingleIniFileTask
+public class RegistryConfigTask extends IniFileConfigTask
 {
     private static final Logger logger = Logger.getLogger(RegistryConfigTask.class.getName());
 
@@ -130,6 +131,41 @@ public class RegistryConfigTask extends SingleIniFileTask
 	        writeToRegistry(destKey);
 		}
     }
+    
+    //TODO: override insertEntry/deleteEntry/keepEntry to wrap super call in setEntryKey
+    @Override
+    protected void insertEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config) throws Exception
+    {
+    	super.insertEntry(setEntryKey(entry), config);
+    }
+    
+    @Override
+    protected void keepEntry(MultiMapConfigEntry entry, MultiMap<String, Section> srcConfig, MultiMap<String, Section> targetConfig) throws Exception
+    {
+    	super.keepEntry(setEntryKey(entry), srcConfig, targetConfig);    	
+    }
+
+    @Override
+    protected void deleteEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config) throws Exception
+    {
+    	super.deleteEntry(setEntryKey(entry), config);    	
+    }
+
+    protected MultiMapConfigEntry setEntryKey(MultiMapConfigEntry entry)
+    {
+    	MultiMapConfigEntry newEntry = entry.clone();
+    	if (entry.getSection() != null)
+    	{
+    		newEntry.setSection(toKey + Registry.KEY_SEPARATOR + entry.getSection());
+    	}
+    	else
+    	{
+    		newEntry.setSection(toKey);
+    	}
+    	return newEntry;
+    }
+    
+    //TODO: different registry datatypes
 
     /**
      * Check that all settings and attributes are valid in combination.

@@ -46,72 +46,91 @@
 
     <xs:complexType name="configurationActionType">
         <xs:sequence>
-            <xs:element name="variable" type="types:dynamicVariableType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="configurableset" type="configurableSetType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="configurable" type="configurableType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="variables" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+	                <xs:sequence>
+	                    <xs:element name="variable" type="types:dynamicVariableType" minOccurs="0" maxOccurs="unbounded"/>
+	                </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="configurables"  minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="inifile" type="multiMapFileType" minOccurs="0" maxOccurs="unbounded"/>
+                        <xs:element name="property" type="multiMapFileType" minOccurs="0" maxOccurs="unbounded"/>
+                        <xs:element name="registry" type="registryType" minOccurs="0" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
         </xs:sequence>
         <xs:attribute name="order" type="xs:string" use="required"/>
     </xs:complexType>
-
-    <xs:complexType name="configurableType">
+    
+    <xs:complexType name="fileType">
         <xs:sequence>
-            <xs:element name="xpathproperty" type="xpathPropertyType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="entry" type="entryType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="fileset" type="fileSetType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="mapper" type="mapperType" minOccurs="0" maxOccurs="1"/>
         </xs:sequence>
-        <xs:attribute name="type" use="required">
-            <xs:simpleType>
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="options"/>
-                    <xs:enumeration value="ini"/>
-                    <xs:enumeration value="xml"/>
-                    <xs:enumeration value="registry"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:attribute>
-        <xs:attribute name="tofile" type="xs:string" use="required"/>
-        <xs:attribute name="patchfile" type="xs:string" use="optional"/>
-        <xs:attribute name="originalfile" type="xs:string" use="optional"/>
-        <xs:attribute name="configfile" type="xs:string" use="optional"/>
-        <xs:attribute name="create" type="xs:boolean" use="optional"/>
-        <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
-        <xs:attribute name="keepOldValues" type="xs:boolean" use="optional"/>
-        <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional"/>
-        <xs:attribute name="escape" type="xs:boolean" use="optional"/>
-        <xs:attribute name="escapeNewLine" type="xs:boolean" use="optional"/>
-        <xs:attribute name="headerComment" type="xs:boolean" use="optional"/>
-        <xs:attribute name="emptyLines" type="xs:boolean" use="optional"/>
-        <xs:attribute name="operator" type="xs:string" use="optional"/>
-        <xs:attribute name="condition" type="xs:string" use="optional"/>
+        <xs:attribute name="tofile" type="xs:string" use="optional"/>
+        <xs:attribute name="fromfile" type="xs:string" use="optional"/>
+        <xs:attribute name="targetfile" type="xs:string" use="optional"/>
+        <xs:attribute name="todir" type="xs:string" use="required"/>
         <xs:attribute name="cleanup" type="xs:string" use="optional"/>
+        <xs:attribute name="create" type="xs:boolean" use="optional"/>
+        <xs:attribute name="overwrite" type="xs:boolean" use="optional"/>
+        <xs:attribute name="failonerror" type="xs:boolean" use="optional"/>
+        <xs:attribute name="condition" type="xs:string" use="required"/>
+        <xs:attribute name="preservelastmodified" type="xs:boolean" use="optional"/>
+        <xs:attribute name="includeemptydirs" type="xs:boolean" use="optional"/>
+        <xs:attribute name="enablemultiplemappings" type="xs:boolean" use="optional"/>
     </xs:complexType>
 
-    <xs:complexType name="configurableSetType">
-        <xs:sequence>
-            <xs:element name="fileset" type="fileSetType"/>
-            <xs:element name="mapper" type="mapperType"/>
-        </xs:sequence>
-        <xs:attribute name="type" use="required">
-            <xs:simpleType>
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="options"/>
-                    <xs:enumeration value="ini"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:attribute>
-        <xs:attribute name="fromfile" type="xs:string" use="optional"/>
-        <xs:attribute name="todir" type="xs:string" use="optional"/>
-        <xs:attribute name="tofile" type="xs:string" use="optional"/>
-        <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
-        <xs:attribute name="keepOldValues" type="xs:boolean" use="optional"/>
-        <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional"/>
-        <xs:attribute name="failonerror" type="xs:boolean" use="optional"/>
-        <xs:attribute name="includeemptydirs" type="xs:boolean" use="optional"/>
-        <xs:attribute name="overwrite" type="xs:boolean" use="optional"/>
-        <xs:attribute name="preservelastmodified" type="xs:boolean" use="optional"/>
-        <xs:attribute name="enablemultiplemappings" type="xs:boolean" use="optional"/>
-        <xs:attribute name="condition" type="xs:string" use="required"/>
-        <xs:attribute name="cleanup" type="xs:boolean" use="optional"/>
+    <xs:complexType name="multiMapFileType">
+        <xs:complexContent>
+	        <xs:extension base="fileType">
+		        <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="keepOldValues" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="escape" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="escapeNewLine" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="headerComment" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="emptyLines" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="operator" type="xs:string" use="optional"/>
+	        </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <xs:complexType name="stdMultiMapFileType">
+        <xs:complexContent>
+            <xs:extension base="multiMapFileType">
+                <xs:sequence>
+                    <xs:element name="entry" type="stdMultiMapEntryType" minOccurs="0" maxOccurs="unbounded"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+      
+    <xs:complexType name="registryType">    
+        <xs:complexContent>
+            <xs:extension base="multiMapFileType">
+                <xs:sequence>
+                    <xs:element name="entry" type="registryEntryType" minOccurs="0" maxOccurs="unbounded"/>
+                </xs:sequence>
+		        <xs:attribute name="fromkey" type="xs:string" use="optional"/>
+		        <xs:attribute name="tokey" type="xs:string" use="optional"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="xmlFileType">
+        <xs:complexContent>
+            <xs:extension base="fileType">
+		        <xs:sequence>
+		            <xs:element name="xpathproperty" type="xpathPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+		        </xs:sequence>
+		        <xs:attribute name="configfile" type="xs:string" use="optional"/>
+            </xs:extension> 
+        </xs:complexContent>
     </xs:complexType>
 
     <xs:complexType name="fileSetType">
@@ -144,13 +163,7 @@
         <xs:attribute name="casesensitive" type="xs:boolean" use="optional"/>
     </xs:complexType>
 
-    <xs:complexType name="entryType">
-        <xs:attribute name="section" type="xs:string" use="optional"/>
-        <xs:attribute name="key" type="xs:string" use="optional"/>
-        <xs:attribute name="value" type="xs:string" use="optional"/>
-        <xs:attribute name="data" type="xs:string" use="optional"/>
-        <xs:attribute name="fromkey" type="xs:string" use="optional"/>
-        <xs:attribute name="tokey" type="xs:string" use="optional"/>
+    <xs:complexType name="multiMapEntryType">
         <xs:attribute name="dataType" use="optional">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
@@ -197,8 +210,28 @@
         <xs:attribute name="pattern" use="optional"/>
     </xs:complexType>
 
+    <xs:complexType name="stdMultiMapEntryType">
+        <xs:complexContent>
+            <xs:extension base="multiMapEntryType">
+                <xs:attribute name="section" type="xs:string" use="optional"/>
+                <xs:attribute name="key" type="xs:string" use="required"/>
+                <xs:attribute name="value" type="xs:string" use="optional"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="registryEntryType">
+        <xs:complexContent>
+            <xs:extension base="multiMapEntryType">
+		        <xs:attribute name="subkey" type="xs:string" use="optional"/>
+		        <xs:attribute name="value" type="xs:string" use="required"/>
+		        <xs:attribute name="data" type="xs:string" use="optional"/>
+	        </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
     <xs:complexType name="xpathPropertyType">
         <xs:attribute name="key" type="xs:string" use="required"/>
         <xs:attribute name="value" type="xs:string" use="required"/>
-    </xs:complexType>
+    </xs:complexType>    
 </xs:schema>

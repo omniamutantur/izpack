@@ -21,7 +21,6 @@
 
 package com.izforge.izpack.event;
 
-import java.io.File;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -61,21 +60,14 @@ import com.izforge.izpack.core.variable.filters.RegularExpressionFilter;
 import com.izforge.izpack.installer.data.UninstallData;
 import com.izforge.izpack.util.FileUtil;
 import com.izforge.izpack.util.config.ConfigFileTask;
-import com.izforge.izpack.util.config.ConfigurableFileCopyTask;
 import com.izforge.izpack.util.config.ConfigurableTask;
-import com.izforge.izpack.util.config.IniFileCopyTask;
-import com.izforge.izpack.util.config.OptionFileCopyTask;
+import com.izforge.izpack.util.config.MultiMapConfigEntry;
 import com.izforge.izpack.util.config.RegistryConfigTask;
-import com.izforge.izpack.util.config.SingleConfigurableTask;
-import com.izforge.izpack.util.config.SingleConfigurableTask.Entry;
-import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.LookupType;
-import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.Operation;
-import com.izforge.izpack.util.config.SingleConfigurableTask.Entry.Type;
-import com.izforge.izpack.util.config.SingleConfigurableTask.Unit;
-import com.izforge.izpack.util.config.base.Reg;
-import com.izforge.izpack.util.config.SingleIniFileTask;
-import com.izforge.izpack.util.config.SingleOptionFileTask;
-import com.izforge.izpack.util.config.SingleXmlFileMergeTask;
+import com.izforge.izpack.util.config.MultiMapConfigFileTask;
+import com.izforge.izpack.util.config.MultiMapConfigEntry.*;
+import com.izforge.izpack.util.config.IniFileConfigTask;
+import com.izforge.izpack.util.config.PropertyFileConfigTask;
+import com.izforge.izpack.util.config.XmlFileConfigTask;
 import com.izforge.izpack.util.file.FileNameMapper;
 import com.izforge.izpack.util.file.GlobPatternMapper;
 import com.izforge.izpack.util.file.types.FileSet;
@@ -91,7 +83,83 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
      * Name of the specification file
      */
     public static final String SPEC_FILE_NAME = "ConfigurationActionsSpec.xml";
+    
+    // Config actions spec names
+    public static final String SPEC_ACTION = "configurationaction";
+    public static final String SPEC_CONFIGURABLES = "configurables";
+    public static final String SPEC_VARIABLES = "variables";
+    public static final String SPEC_VARIABLE = "variable";
+    public static final String SPEC_CONFIG_REG = "registry";
+    public static final String SPEC_CONFIG_PROP = "propertyfile";
+    public static final String SPEC_CONFIG_INI = "inifile";
+    public static final String SPEC_CONIG_XML = "xmlfile";
+	public static final String SPEC_ENTRY = "entry";
+	public static final String SPEC_FILESET = "fileset";
+	public static final String SPEC_MAPPER = "mapper";
+	public static final String SPEC_XPATH_PROP = "xpathproperty";
+    
+	// Common file config spec names
+	public static final String SPEC_TOFILE = "tofile";
+	public static final String SPEC_FROMFILE = "fromfile";
+	public static final String SPEC_TARGETFILE = "targetfile";	
+	public static final String SPEC_TODIR = "todir";
+    public static final String SPEC_CLEANUP = "cleanup";
+	public static final String SPEC_CREATE = "create";
+	public static final String SPEC_OVERWRITE = "overwrite";
+	public static final String SPEC_FAIL = "failonerror";
+	public static final String SPEC_PRESERVEMOD = "preservelastmodified";
+	
+	// Multi-file operation spec attributes
+	public static final String SPEC_EMPTYDIRS = "includeemptydirs";
+	public static final String SPEC_MAPPINGS = "enablemultiplemappings";
 
+	// MultiMap-specific spec attributes
+	public static final String SPEC_KEEPKEYS = "keepOldKeys";
+	public static final String SPEC_KEEPVALUES = "keepOldValues";
+	public static final String SPEC_RESOLVE = "resolveExpressions";
+	public static final String SPEC_ESCAPE = "escape";
+	public static final String SPEC_ESCAPENEWLINE = "escapeNewLine";
+	public static final String SPEC_HEADER = "headerComment";
+	public static final String SPEC_EMPTYLINES = "emptyLines";
+	public static final String SPEC_OPERATOR = "operator";
+	
+	// Implementation-specific spec attributes
+	public static final String SPEC_REG_FROM = "fromkey";
+	public static final String SPEC_REG_TO = "tokey";
+	public static final String SPEC_XML_CONFIGFILE = "configfile";
+	
+	// Entry spec common attributes
+	public static final String SPEC_DATATYPE = "dataType"; 
+	public static final String SPEC_LOOKUPTYPE = "lookupType"; 
+	public static final String SPEC_OPERATION = "operation"; 
+	public static final String SPEC_UNIT = "unit"; 
+	public static final String SPEC_DEFAULT = "default"; 
+	public static final String SPEC_PATTERN = "pattern"; 
+	public static final String SPEC_CONDITION = "condition";
+	
+	// Implementation-specific entry attributes
+	public static final String SPEC_SECTION = "section";
+	public static final String SPEC_KEY = "key";
+	public static final String SPEC_VALUE = "value";
+	public static final String SPEC_CASESENSITIVE = "casesensitive";
+	public static final String SPEC_FS_DIR = "dir";
+	public static final String SPEC_FS_FILE = "file";
+	public static final String SPEC_FS_INCLUDES = "includes";
+	public static final String SPEC_FS_EXCLUDES = "excludes";
+	public static final String SPEC_FS_INCLUDE = "include";
+	public static final String SPEC_FS_EXCLUDE = "exclude";
+	public static final String SPEC_FS_NAME = "name";
+	public static final String SPEC_FS_DEFEXCLUDES = "defaultexcludes";
+	public static final String SPEC_FS_FOLLOWSLINKS = "followsymlinks";
+	public static final String SPEC_MAPPER_TYPE = "type";
+	public static final String SPEC_MAPPER_FROM = "from";
+	public static final String SPEC_MAPPER_TO = "to";
+	public static final String SPEC_REG_KEY = "subkey";
+	public static final String SPEC_REG_VALUE = "value";
+	public static final String SPEC_REG_DATA = "data";
+	public static final String SPEC_XPATH_KEY = "key";
+	public static final String SPEC_XPATH_VALUE = "value";	
+	
     private static final String ERRMSG_CONFIGACTION_BADATTR = "Bad attribute value in configuration action: {0}=\"{1}\" not allowed";
 
     /**
@@ -200,7 +268,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             packActions.put(ActionBase.AFTERPACKS, new ArrayList<ConfigurationAction>());
 
             // Get all entries for antcalls.
-            List<IXMLElement> configActionEntries = pack.getChildrenNamed("configurationaction");
+            List<IXMLElement> configActionEntries = pack.getChildrenNamed(SPEC_ACTION);
             if (configActionEntries != null)
             {
                 logger.fine("Found " + configActionEntries.size() + " configuration actions");
@@ -389,9 +457,8 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         }
 
         // Read specific attributes and nested elements
-        substlocal = new VariableSubstitutorImpl(readVariables(el));
-        act.setActionTasks(readConfigurables(el));
-        act.addActionTasks(readConfigurableSets(el));
+        substlocal = new VariableSubstitutorImpl(readVariables(el.getFirstChildNamed(SPEC_VARIABLES)));
+        act.setActionTasks(readConfigurables(el.getFirstChildNamed(SPEC_CONFIGURABLES)));
 
         return act;
     }
@@ -420,108 +487,107 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         return name;
     }
 
-    protected List<ConfigurationActionTask> readConfigurableSets(IXMLElement parent) throws InstallerException
-    {
-        List<ConfigurationActionTask> configtasks = new ArrayList<ConfigurationActionTask>();
-        for (IXMLElement el : parent.getChildrenNamed("configurableset"))
-        {
-            String attrib = requireAttribute(el, "type");
-            ConfigType configType;
-            if (attrib != null)
-            {
-                configType = ConfigType.getFromAttribute(attrib);
-                if (configType == null)
-                {
-                    throw new InstallerException("Unknown configurableset type '" + attrib + "'");
-                }
-            }
-            else
-            {
-                throw new InstallerException("Missing configurableset type");
-            }
-
-            ConfigurableTask task;
-            switch (configType)
-            {
-                case OPTIONS:
-                    task = new OptionFileCopyTask();
-                    readConfigurableSetCommonAttributes(el, (ConfigurableFileCopyTask) task);
-                    break;
-
-                case INI:
-                    task = new IniFileCopyTask();
-                    readConfigurableSetCommonAttributes(el, (ConfigurableFileCopyTask) task);
-                    break;
-                default:
-                    throw new InstallerException(
-                            "Type '" + configType.getAttribute() + "' currently not allowed for ConfigurableSet");
-            }
-
-            configtasks.add(new ConfigurationActionTask(task, getAttribute(el, "condition"),
-                                                        getInstallData().getRules()));
-        }
-        return configtasks;
-    }
-
-    private void readConfigurableSetCommonAttributes(IXMLElement el, ConfigurableFileCopyTask task)
+    private <K, V> void readMultiMapConfigFileTaskCommonAttributes(IXMLElement el, MultiMapConfigFileTask<K, V> task)
             throws InstallerException
     {
-        InstallData idata = getInstallData();
-        task.setToDir(FileUtil.getAbsoluteFile(getAttribute(el, "todir"), idata.getInstallPath()));
-        
-    	Boolean boolAttr = (getBooleanAttribute(el, "keepOldKeys"));
+    	Boolean boolAttr = null;
+    	
+    	boolAttr = (getBooleanAttribute(el, SPEC_KEEPKEYS));
     	if (boolAttr != null)
 		{
     		task.setPatchPreserveEntries(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "keepOldValues"));
+    	boolAttr = (getBooleanAttribute(el, SPEC_KEEPVALUES));
     	if (boolAttr != null)
 		{
     		task.setPatchPreserveValues(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "resolveExpressions"));
+    	boolAttr = (getBooleanAttribute(el, SPEC_RESOLVE));
     	if (boolAttr != null)
 		{
-    		task.setPatchResolveExpressions(boolAttr);
+    		task.setPatchResolveVariables(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "failonerror"));
+    	boolAttr = (getBooleanAttribute(el, SPEC_ESCAPE));
     	if (boolAttr != null)
 		{
-    		task.setFailOnError(boolAttr);
+    		task.setEscape(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "includeemptydirs"));
+    	boolAttr = (getBooleanAttribute(el, SPEC_ESCAPENEWLINE));
     	if (boolAttr != null)
 		{
-    		task.setIncludeEmptyDirs(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "overwrite"));
+    		task.setEscapeNewLine(boolAttr);
+		}        
+    	boolAttr = (getBooleanAttribute(el, SPEC_HEADER));
     	if (boolAttr != null)
 		{
-    		task.setOverwrite(boolAttr);
+    		task.setHeaderComment(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "preservelastmodified"));
+    	boolAttr = (getBooleanAttribute(el, SPEC_EMPTYLINES));
     	if (boolAttr != null)
 		{
-    		task.setPreserveLastModified(boolAttr);
+    		task.setEmptyLines(boolAttr);
 		}
-    	boolAttr = (getBooleanAttribute(el, "enablemultiplemappings"));
-    	if (boolAttr != null)
-		{
-    		task.setEnableMultipleMappings(boolAttr);
-		}
-        boolAttr = (getBooleanAttribute(el, "cleanup"));
+    	String operator = getAttribute(el, SPEC_OPERATOR);
+        if (operator != null)
+        {
+            task.setOperator(operator);
+        }
+    }
+
+    private void readConfigFileTaskCommonAttributes(InstallData idata, IXMLElement config, ConfigFileTask task)
+            throws InstallerException
+    {
+    	// read common file attributes
+        task.setToFile(FileUtil.getAbsoluteFile(requireAttribute(config, SPEC_TOFILE), idata.getInstallPath()));
+        task.setSrcFile(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_FROMFILE), idata.getInstallPath()));
+        task.setTargetFile(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_TARGETFILE), idata.getInstallPath()));
+        task.setToDir(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_TODIR), idata.getInstallPath()));
+        
+        // read common flag attributes
+        Boolean boolAttr = (getBooleanAttribute(config, SPEC_CLEANUP));
     	if (boolAttr != null)
 		{
     		task.setCleanup(boolAttr);
 		}
+    	boolAttr = getBooleanAttribute(config, SPEC_CREATE);
+    	if (boolAttr != null)
+		{
+    		task.setCreate(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(config, SPEC_OVERWRITE));
+    	if (boolAttr != null)
+		{
+    		task.setOverwrite(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(config, SPEC_FAIL));
+    	if (boolAttr != null)
+		{
+    		task.setFailOnError(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(config, SPEC_PRESERVEMOD));
+    	if (boolAttr != null)
+		{
+    		task.setPreserveLastModified(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(config, SPEC_EMPTYDIRS));
+    	if (boolAttr != null)
+		{
+    		task.setIncludeEmptyDirs(boolAttr);
+		}
+    	boolAttr = (getBooleanAttribute(config, SPEC_MAPPINGS));
+    	if (boolAttr != null)
+		{
+    		task.setEnableMultipleMappings(boolAttr);
+		}
 
-    	for (FileSet fs : readFileSets(el))
+    	// read common nested elements
+    	for (FileSet fs : readFileSets(config.getChildrenNamed(SPEC_FILESET)))
         {
             task.addFileSet(fs);
         }
         try
         {
-            for (FileNameMapper mapper : readMapper(el))
+            for (FileNameMapper mapper : readMappers(config.getChildrenNamed(SPEC_MAPPER)))
             {
                 task.add(mapper);
             }
@@ -530,86 +596,15 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         {
             throw new InstallerException(e.getMessage());
         }
-    }
+	}
 
-    private void readSingleConfigurableTaskCommonAttributes(IXMLElement el, SingleConfigurableTask task)
-            throws InstallerException
-    {
-    	Boolean boolAttr = getBooleanAttribute(el, "create");
-    	if (boolAttr != null)
-		{
-    		task.setCreate(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "overwrite"));
-    	if (boolAttr != null)
-		{
-    		task.setOverwrite(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "keepOldKeys"));
-    	if (boolAttr != null)
-		{
-    		task.setPatchPreserveEntries(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "keepOldValues"));
-    	if (boolAttr != null)
-		{
-    		task.setPatchPreserveValues(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "resolveExpressions"));
-    	if (boolAttr != null)
-		{
-    		task.setPatchResolveVariables(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "escape"));
-    	if (boolAttr != null)
-		{
-    		task.setEscape(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "escapeNewLine"));
-    	if (boolAttr != null)
-		{
-    		task.setEscapeNewLine(boolAttr);
-		}        
-    	boolAttr = (getBooleanAttribute(el, "headerComment"));
-    	if (boolAttr != null)
-		{
-    		task.setHeaderComment(boolAttr);
-		}
-    	boolAttr = (getBooleanAttribute(el, "emptyLines"));
-    	if (boolAttr != null)
-		{
-    		task.setEmptyLines(boolAttr);
-		}
-    	String operator = getAttribute(el, "operator");
-        if (operator != null)
-        {
-            task.setOperator(operator);
-        }
-    }
-
-    private void readConfigFileTaskCommonAttributes(InstallData idata,
-                                                    IXMLElement el, ConfigFileTask task)
-            throws InstallerException
-    {
-        File tofile = FileUtil.getAbsoluteFile(requireAttribute(el, "tofile"), idata.getInstallPath());
-        task.setToFile(tofile);
-        task.setOldFile(FileUtil.getAbsoluteFile(getAttribute(el, "patchfile"), idata.getInstallPath()));
-        File newfile = FileUtil.getAbsoluteFile(getAttribute(el, "originalfile"), idata.getInstallPath());
-        task.setNewFile(newfile);
-        Boolean boolAttr = (getBooleanAttribute(el, "cleanup"));
-    	if (boolAttr != null)
-		{
-    		task.setCleanup(boolAttr);
-		}
-    }
-
-    protected List<ConfigurationActionTask> readConfigurables(IXMLElement parent) throws InstallerException
+    protected List<ConfigurationActionTask> readConfigurables(IXMLElement configurables) throws InstallerException
     {
         List<ConfigurationActionTask> configtasks = new ArrayList<ConfigurationActionTask>();
         InstallData idata = getInstallData();
-        for (IXMLElement el : parent.getChildrenNamed("configurable"))
+        for (IXMLElement config : configurables.getChildren())
         {
-            String attrib = requireAttribute(el, "type");
+            String attrib = config.getName();
             ConfigType configType;
             if (attrib != null)
             {
@@ -621,67 +616,41 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             }
             else
             {
-                throw new InstallerException("Missing configurable type");
+                logger.warning("ignoring unexpected character data in element " + SPEC_CONFIGURABLES);
+                continue;
             }
 
             ConfigurableTask task;
             switch (configType)
             {
                 case OPTIONS:
-                    task = new SingleOptionFileTask();
-                    readConfigFileTaskCommonAttributes(idata, el, (ConfigFileTask) task);
-                    readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
-                    readAndAddEntries(el, (SingleConfigurableTask) task);
+                    task = new PropertyFileConfigTask();
+                    readConfigFileTaskCommonAttributes(idata, config, (ConfigFileTask) task);
+                    readMultiMapConfigFileTaskCommonAttributes(config, (PropertyFileConfigTask) task);
+                    readAndAddMultiMapConfigEntries(config.getChildrenNamed(SPEC_ENTRY), (PropertyFileConfigTask) task);
                     break;
 
                 case INI:
-                    task = new SingleIniFileTask();
-                    readConfigFileTaskCommonAttributes(idata, el, (ConfigFileTask) task);
-                    readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
-                    readAndAddEntries(el, (SingleConfigurableTask) task);
+                    task = new IniFileConfigTask();
+                    readConfigFileTaskCommonAttributes(idata, config, (ConfigFileTask) task);
+                    readMultiMapConfigFileTaskCommonAttributes(config, (IniFileConfigTask) task);
+                    readAndAddMultiMapConfigEntries(config.getChildrenNamed(SPEC_ENTRY), (IniFileConfigTask) task);
                     break;
 
                 case XML:
-                    task = new SingleXmlFileMergeTask();
-                    File tofile = FileUtil.getAbsoluteFile(requireAttribute(el, "tofile"), idata.getInstallPath());
-                    ((SingleXmlFileMergeTask) task).setToFile(tofile);
-                    ((SingleXmlFileMergeTask) task).setPatchFile(
-                            FileUtil.getAbsoluteFile(getAttribute(el, "patchfile"), idata.getInstallPath()));
-                    File originalfile = FileUtil.getAbsoluteFile(getAttribute(el, "originalfile"),
-                                                                 idata.getInstallPath());
-                    if (originalfile == null)
-                    {
-                        originalfile = tofile;
-                    }
-                    ((SingleXmlFileMergeTask) task).setOriginalFile(originalfile);
-                    ((SingleXmlFileMergeTask) task).setConfigFile(
-                            FileUtil.getAbsoluteFile(getAttribute(el, "configfile"), idata.getInstallPath()));
-                    
-                    Boolean cleanup = (getBooleanAttribute(el, "cleanup"));
-                	if (cleanup != null)
-            		{
-                		((SingleXmlFileMergeTask) task).setCleanup(cleanup);
-            		}
-                	
-                	List<FileSet> fslist = readFileSets(el);
-                    for (FileSet fs : fslist)
-                    {
-                        ((SingleXmlFileMergeTask) task).addFileSet(fs);
-                    }
-                    readAndAddXPathProperties(el, (SingleXmlFileMergeTask) task);
+                    task = new XmlFileConfigTask();
+                    readConfigFileTaskCommonAttributes(idata, config, (ConfigFileTask) task);
+                    ((XmlFileConfigTask) task).setConfigFile(
+                            FileUtil.getAbsoluteFile(getAttribute(config, SPEC_XML_CONFIGFILE), idata.getInstallPath()));                    
+                    readAndAddXPathProperties(config.getChildrenNamed(SPEC_XPATH_PROP), (XmlFileConfigTask) task);
                     break;
 
                 case REGISTRY:
                     task = new RegistryConfigTask();
-                    ((RegistryConfigTask) task).setFromKey(getAttribute(el, "fromkey"));
-                    ((RegistryConfigTask) task).setKey(requireAttribute(el, "tokey"));
-                    readSingleConfigurableTaskCommonAttributes(el, (SingleConfigurableTask) task);
-                    Boolean uninstall = getBooleanAttribute(el, "uninstall");
-                    if (uninstall != null)
-                    {
-                    	((RegistryConfigTask)task).setUninstall(true);
-                    }
-                    readAndAddEntries(el, (SingleConfigurableTask) task);
+                    ((RegistryConfigTask) task).setSrcKey(getAttribute(config, SPEC_REG_FROM));
+                    ((RegistryConfigTask) task).setToKey(requireAttribute(config, SPEC_REG_TO));
+                    readMultiMapConfigFileTaskCommonAttributes(config, (RegistryConfigTask) task);
+                    readAndAddRegistryConfigEntries(config.getChildrenNamed(SPEC_ENTRY), (RegistryConfigTask) task);
                     break;
 
                 default:
@@ -690,44 +659,42 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                             "Type '" + configType.getAttribute() + "' currently not allowed for Configurable");
             }
 
-            configtasks.add(new ConfigurationActionTask(task, getAttribute(el, "condition"),
+            configtasks.add(new ConfigurationActionTask(task, getAttribute(config, SPEC_CONDITION),
                                                         getInstallData().getRules()));
         }
         return configtasks;
     }
 
 
-    public void readAndAddEntries(IXMLElement parent, SingleConfigurableTask task) throws InstallerException
-    {
-        for (IXMLElement el : parent.getChildrenNamed("entry"))
+    public <K, V> void readAndAddMultiMapConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
+    {    	
+        for (IXMLElement entrySpec : entries)
         {
-            Entry entry = createEntryFromXML(el);
-            if (task instanceof SingleOptionFileTask)
-            {
-                entry.setKey(el.getAttribute("key"));
-                entry.setValue(getAttribute(el, "value"));
-            }
-            else if (task instanceof SingleIniFileTask)
-            {
-                entry.setSection(el.getAttribute("section"));
-                entry.setKey(el.getAttribute("key"));
-                entry.setValue(getAttribute(el, "value"));
-            }
-            else if (task instanceof RegistryConfigTask)
-            {
-            	String subkey = el.getAttribute("key");
-            	entry.setSection(subkey == null ? ((RegistryConfigTask)task).getKey() : ((RegistryConfigTask)task).getKey() + Reg.PATH_SEPARATOR + subkey);
-                entry.setKey(el.getAttribute("value"));
-                entry.setValue(getAttribute(el, "data"));
-            }
+        	MultiMapConfigEntry entry = new MultiMapConfigEntry();
+            readMultiMapConfigEntryCommonAttributes(entrySpec, entry);
+            entry.setSection(getAttribute(entrySpec, SPEC_SECTION));
+            entry.setKey(requireAttribute(entrySpec, SPEC_KEY));
+            entry.setValue(getAttribute(entrySpec, SPEC_VALUE));
+            task.addEntry(entry);
+        }
+    }
+        
+    public <K, V> void readAndAddRegistryConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
+    {
+        for (IXMLElement entrySpec : entries)
+        {
+        	MultiMapConfigEntry entry = new MultiMapConfigEntry();
+            readMultiMapConfigEntryCommonAttributes(entrySpec, entry);
+        	entry.setSection(getAttribute(entrySpec, SPEC_REG_KEY));
+            entry.setKey(requireAttribute(entrySpec, SPEC_REG_VALUE));
+            entry.setValue(getAttribute(entrySpec, SPEC_REG_DATA));
             task.addEntry(entry);
         }
     }
 
-    private Entry createEntryFromXML(IXMLElement parent) throws InstallerException
+    private void readMultiMapConfigEntryCommonAttributes(IXMLElement entrySpec, MultiMapConfigEntry entry) throws InstallerException
     {
-        Entry e = new Entry();
-        String attrib = parent.getAttribute("dataType");
+        String attrib = entrySpec.getAttribute(SPEC_DATATYPE);
         if (attrib != null)
         {
             Type type = Type.getFromAttribute(attrib);
@@ -736,11 +703,11 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 // TODO Inform about misconfigured configuration actions during
                 // compilation
                 throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
-                        "dataType", attrib));
+                		SPEC_DATATYPE, attrib));
             }
-            e.setType(type);
+            entry.setType(type);
         }
-        attrib = parent.getAttribute("lookupType");
+        attrib = entrySpec.getAttribute(SPEC_LOOKUPTYPE);
         if (attrib != null)
         {
             LookupType lookupType = LookupType.getFromAttribute(attrib);
@@ -748,11 +715,11 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             {
                 // TODO Inform about misconfigured configuration actions during compilation
                 throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
-                        "lookupType", attrib));
+                		SPEC_LOOKUPTYPE, attrib));
             }
-            e.setLookupType(lookupType);
+            entry.setLookupType(lookupType);
         }
-        attrib = parent.getAttribute("operation");
+        attrib = entrySpec.getAttribute(SPEC_OPERATION);
         if (attrib != null)
         {
             Operation operation = Operation.getFromAttribute(attrib);
@@ -762,12 +729,12 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
               throw new InstallerException(
                   MessageFormat.format(
                       ERRMSG_CONFIGACTION_BADATTR,
-                      "operation", attrib)
+                      SPEC_OPERATION, attrib)
                   );
             }
-            e.setOperation(operation);
+            entry.setOperation(operation);
         }
-        attrib = parent.getAttribute("unit");
+        attrib = entrySpec.getAttribute(SPEC_UNIT);
         if (attrib != null)
         {
             Unit unit = Unit.getFromAttribute(attrib);
@@ -775,117 +742,107 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             {
                 // TODO Inform about misconfigured configuration actions during compilation
                 throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
-                        "unit", attrib));
+                		SPEC_UNIT, attrib));
             }
-            e.setUnit(unit);
+            entry.setUnit(unit);
         }
-        e.setDefault(parent.getAttribute("default"));
-        e.setPattern(parent.getAttribute("pattern"));
-        //FIXME remove?
-        //filterEntryFromXML(parent, e);
-        return e;
+        entry.setDefault(entrySpec.getAttribute(SPEC_DEFAULT));
+        entry.setPattern(entrySpec.getAttribute(SPEC_PATTERN));
     }
 
 
-    private void readAndAddXPathProperties(IXMLElement parent, SingleXmlFileMergeTask task)
+    private void readAndAddXPathProperties(List<IXMLElement> xpathProps, XmlFileConfigTask task)
             throws InstallerException
     {
-        for (IXMLElement f : parent.getChildrenNamed("xpathproperty"))
+        for (IXMLElement xpathProp : xpathProps)
         {
-            task.addProperty(requireAttribute(f, "key"), requireAttribute(f, "value"));
+            task.addProperty(requireAttribute(xpathProp, SPEC_XPATH_KEY), requireAttribute(xpathProp, SPEC_XPATH_VALUE));
         }
     }
 
-    private List<FileSet> readFileSets(IXMLElement parent)
+    protected List<FileSet> readFileSets(List<IXMLElement> filesetSpecs)
             throws InstallerException
     {
-        Iterator<IXMLElement> iter = parent.getChildrenNamed("fileset").iterator();
-        List<FileSet> fslist = new ArrayList<FileSet>();
+        List<FileSet> filesets = new ArrayList<FileSet>();
         try
         {
             String installPath = getInstallData().getInstallPath();
-            while (iter.hasNext())
+            for (IXMLElement filesetSpec : filesetSpecs)
             {
-                IXMLElement f = iter.next();
+                FileSet fileset = new FileSet();
 
-
-                FileSet fs = new FileSet();
-
-                String strattr = getAttribute(f, "dir");
+                String strattr = getAttribute(filesetSpec, SPEC_FS_DIR);
                 if (strattr != null)
                 {
-                    fs.setDir(FileUtil.getAbsoluteFile(strattr, installPath));
+                    fileset.setDir(FileUtil.getAbsoluteFile(strattr, installPath));
                 }
 
-                strattr = getAttribute(f, "file");
+                strattr = getAttribute(filesetSpec, SPEC_FS_FILE);
                 if (strattr != null)
                 {
-                    fs.setFile(FileUtil.getAbsoluteFile(strattr, installPath));
+                    fileset.setFile(FileUtil.getAbsoluteFile(strattr, installPath));
                 }
                 else
                 {
-                    if (fs.getDir() == null)
+                    if (fileset.getDir() == null)
                     {
                         throw new InstallerException(
                                 "At least one of both attributes, 'dir' or 'file' required in fileset");
                     }
                 }
 
-                strattr = getAttribute(f, "includes");
+                strattr = getAttribute(filesetSpec, SPEC_FS_INCLUDES);
                 if (strattr != null)
                 {
-                    fs.setIncludes(strattr);
+                    fileset.setIncludes(strattr);
                 }
 
-                strattr = getAttribute(f, "excludes");
+                strattr = getAttribute(filesetSpec, SPEC_FS_EXCLUDES);
                 if (strattr != null)
                 {
-                    fs.setExcludes(strattr);
+                    fileset.setExcludes(strattr);
                 }
 
-                Boolean boolAttr = getBooleanAttribute(f, "casesensitive");
+                Boolean boolAttr = getBooleanAttribute(filesetSpec, SPEC_CASESENSITIVE);
                 if (boolAttr != null)
                 {
-                    fs.setCaseSensitive(boolAttr);
+                    fileset.setCaseSensitive(boolAttr);
                 }
 
-                boolAttr = getBooleanAttribute(f, "defaultexcludes");
+                boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_DEFEXCLUDES);
                 if (boolAttr != null)
                 {
-                    fs.setDefaultexcludes(boolAttr);
+                    fileset.setDefaultexcludes(boolAttr);
                 }
 
-                boolAttr = getBooleanAttribute(f, "followsymlinks");
+                boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_FOLLOWSLINKS);
                 if (boolAttr != null)
                 {
-                    fs.setFollowSymlinks(boolAttr);
+                    fileset.setFollowSymlinks(boolAttr);
                 }
 
-                readAndAddIncludes(f, fs);
-                readAndAddExcludes(f, fs);
+                readAndAddFilesetIncludes(filesetSpec.getChildrenNamed(SPEC_FS_INCLUDE), fileset);
+                readAndAddFilesetExcludes(filesetSpec.getChildrenNamed(SPEC_FS_EXCLUDE), fileset);
 
-                fslist.add(fs);
+                filesets.add(fileset);
             }
         }
         catch (Exception e)
         {
             throw new InstallerException(e);
         }
-        return fslist;
+        return filesets;
     }
 
-    private List<FileNameMapper> readMapper(IXMLElement parent)
+    protected List<FileNameMapper> readMappers(List<IXMLElement> mapperSpecs)
             throws InstallerException
     {
-        Iterator<IXMLElement> iter = parent.getChildrenNamed("mapper").iterator();
         List<FileNameMapper> mappers = new ArrayList<FileNameMapper>();
         try
         {
-            while (iter.hasNext())
+            for (IXMLElement mapperSpec : mapperSpecs)
             {
-                IXMLElement f = iter.next();
-
-                String attrib = requireAttribute(f, "type");
+                String attrib = requireAttribute(mapperSpec, SPEC_MAPPER_TYPE);
                 Mapper.MapperType mappertype;
                 if (attrib != null)
                 {
@@ -902,13 +859,13 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 FileNameMapper mapper = (FileNameMapper) Class.forName(mappertype.getImplementation()).newInstance();
                 if (mapper instanceof GlobPatternMapper)
                 {
-                    Boolean boolAttr = getBooleanAttribute(f, "casesensitive");
+                    Boolean boolAttr = getBooleanAttribute(mapperSpec, SPEC_CASESENSITIVE);
                     if (boolAttr != null)
                     {
                         ((GlobPatternMapper) mapper).setCaseSensitive(boolAttr);
                     }
-                    mapper.setFrom(requireAttribute(f, "from"));
-                    mapper.setTo(requireAttribute(f, "to"));
+                    mapper.setFrom(requireAttribute(mapperSpec, SPEC_MAPPER_FROM));
+                    mapper.setTo(requireAttribute(mapperSpec, SPEC_MAPPER_TO));
                 }
                 else
                 {
@@ -925,21 +882,21 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         return mappers;
     }
 
-    private void readAndAddIncludes(IXMLElement parent, FileSet fileset)
+    private void readAndAddFilesetIncludes(List<IXMLElement> includeSpecs, FileSet fileset)
             throws InstallerException
     {
-        for (IXMLElement f : parent.getChildrenNamed("include"))
+        for (IXMLElement includeSpec : includeSpecs)
         {
-            fileset.createInclude().setName(requireAttribute(f, "name"));
+            fileset.createInclude().setName(requireAttribute(includeSpec, SPEC_FS_NAME));
         }
     }
 
-    private void readAndAddExcludes(IXMLElement parent, FileSet fileset)
+    private void readAndAddFilesetExcludes(List<IXMLElement> excludeSpecs, FileSet fileset)
             throws InstallerException
     {
-        for (IXMLElement f : parent.getChildrenNamed("exclude"))
+        for (IXMLElement excludeSpec : excludeSpecs)
         {
-            fileset.createExclude().setName(requireAttribute(f, "name"));
+            fileset.createExclude().setName(requireAttribute(excludeSpec, SPEC_FS_NAME));
         }
     }
 
@@ -969,16 +926,15 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         return filetype;
     }
 
-    protected Properties readVariables(IXMLElement parent) throws InstallerException
+    protected Properties readVariables(IXMLElement variables) throws InstallerException
     {
         List<DynamicVariable> dynamicVariables = null;
 
-        IXMLElement vars = parent.getFirstChildNamed("variables");
-        if (vars != null)
+        if (variables != null)
         {
             dynamicVariables = new LinkedList<DynamicVariable>();
 
-            for (IXMLElement var : parent.getChildrenNamed("variable"))
+            for (IXMLElement var : variables.getChildrenNamed(SPEC_VARIABLE))
             {
                 String name = requireAttribute(var, "name");
 
@@ -1327,8 +1283,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     		return null;
     	}
     	else if	(value.equalsIgnoreCase("true") || 
-    			 value.equalsIgnoreCase("yes") || 
-    			 value.equalsIgnoreCase("on"))
+    			 value.equalsIgnoreCase("1"))
     	{
     		return true;
     	}
@@ -1373,7 +1328,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 
     public enum ConfigType
     {
-        OPTIONS("options"), INI("ini"), XML("xml"), REGISTRY("registry");
+        OPTIONS("propertyfile"), INI("inifile"), XML("xmlfile"), REGISTRY("registry");
 
         private static Map<String, ConfigType> lookup;
 

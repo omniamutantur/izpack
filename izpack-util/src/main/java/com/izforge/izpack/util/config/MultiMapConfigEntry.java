@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 /**
  * Instance of this class represents nested elements of a task configuration file.
  */
-public abstract class MultiMapConfigEntry
+public class MultiMapConfigEntry implements Cloneable
 {
     private static final Logger logger = Logger.getLogger(MultiMapConfigEntry.class.getName());
 
@@ -505,6 +505,15 @@ public abstract class MultiMapConfigEntry
         }
 
         return ret;
+    }
+    
+    public MultiMapConfigEntry clone()
+    {
+    	try {
+			return (MultiMapConfigEntry) super.clone();
+		} catch (CloneNotSupportedException e) {
+			throw new Error("An internal error has occurred: MultiMapConfigEntry instance could not be cloned.", e);
+		}
     }
 
     /**

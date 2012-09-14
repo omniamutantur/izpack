@@ -34,9 +34,9 @@ import com.izforge.izpack.util.xmlmerge.XmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.ConfigurableXmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.PropertyXPathConfigurer;
 
-public class SingleXmlFileMergeTask extends MergeableConfigFileTask
+public class XmlFileConfigTask extends MergeableConfigFileTask
 {
-    private static final Logger logger = Logger.getLogger(SingleXmlFileMergeTask.class.getName());
+    private static final Logger logger = Logger.getLogger(XmlFileConfigTask.class.getName());
 
     protected File origfile;
     protected File patchfile;

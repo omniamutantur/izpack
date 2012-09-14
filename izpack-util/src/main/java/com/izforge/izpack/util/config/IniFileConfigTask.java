@@ -27,15 +27,14 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import com.izforge.izpack.util.config.base.BasicProfile;
 import com.izforge.izpack.util.config.base.Ini;
 import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.Profile;
 import com.izforge.izpack.util.config.base.Profile.Section;
 
-public class SingleIniFileTask extends MultiMapConfigFileTask<String, Profile.Section> 
+public class IniFileConfigTask extends MultiMapConfigFileTask<String, Profile.Section> 
 {
-    private static final Logger logger = Logger.getLogger(SingleIniFileTask.class.getName());
+    private static final Logger logger = Logger.getLogger(IniFileConfigTask.class.getName());
     
 
 	@Override

@@ -31,9 +31,9 @@ import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.OptionMap;
 import com.izforge.izpack.util.config.base.Options;
 
-public class SingleOptionFileTask extends MultiMapConfigFileTask<String, String>
+public class PropertyFileConfigTask extends MultiMapConfigFileTask<String, String>
 {
-    private static final Logger logger = Logger.getLogger(SingleOptionFileTask.class.getName());
+    private static final Logger logger = Logger.getLogger(PropertyFileConfigTask.class.getName());
 
     @Override
     protected MultiMap<String, String> readFromFile(File configFile) throws IOException
