@@ -932,6 +932,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 
         if (variables != null)
         {
+            logger.fine("Reading variables for configuration action");
             dynamicVariables = new LinkedList<DynamicVariable>();
 
             for (IXMLElement var : variables.getChildrenNamed(SPEC_VARIABLE))
@@ -1182,10 +1183,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             for (DynamicVariable dynvar : dynamicvariables)
             {
                 String name = dynvar.getName();
-                logger.fine("Configuration variable: " + name);
+                logger.fine("Evaluating configuration variable: " + name);
                 boolean refresh = false;
                 String conditionid = dynvar.getConditionid();
-                logger.fine("condition: " + conditionid);
+                logger.fine("Configuration variable condition: " + conditionid);
                 if ((conditionid != null) && (conditionid.length() > 0))
                 {
                     if ((rules != null) && rules.isConditionTrue(conditionid))
