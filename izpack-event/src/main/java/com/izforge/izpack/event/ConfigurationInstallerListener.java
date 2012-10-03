@@ -937,6 +937,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             for (IXMLElement var : variables.getChildrenNamed(SPEC_VARIABLE))
             {
                 String name = requireAttribute(var, "name");
+                logger.fine("Reading variable '" + name +"'");
 
                 DynamicVariable dynamicVariable = new DynamicVariableImpl();
                 dynamicVariable.setName(name);
@@ -1157,18 +1158,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                                        + e.getMessage());
                 }
 
-                for (DynamicVariable dynvar : dynamicVariables)
-                {
-                    String conditionid = getAttribute(var, "condition");
-                    dynamicVariable.setConditionid(conditionid);
+                String conditionid = getAttribute(var, "condition");
+                dynamicVariable.setConditionid(conditionid);
 
-                    if (dynvar.getName().equals(name))
-                    {
-                        dynamicVariables.remove(dynvar);
-                        parseWarn(var, "Dynamic Variable '" + name + "' overwritten");
-                    }
-                    dynamicVariables.add(dynamicVariable);
-                }
+                dynamicVariables.add(dynamicVariable);
             }
         }
 
