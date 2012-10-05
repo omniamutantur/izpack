@@ -24,6 +24,9 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -77,26 +80,22 @@ public class IniFileConfigTask extends MultiMapConfigFileTask<String, Profile.Se
 	@Override
 	protected void patch(MultiMap<String, Section> srcConfig, MultiMap<String, Section> patchConfig)
 	{
-        Set<String> toKeySet;
-        Set<String> fromKeySet;
-        Set<String> sectionKeySet = patchConfig.keySet();
-        Set<String> fromSectionKeySet = srcConfig.keySet();
-        for (String fromSectionKey : fromSectionKeySet)
+        for (String fromSectionKey : srcConfig.keySet())
         {
-            if (sectionKeySet.contains(fromSectionKey))
+        	Ini.Section toSection = patchConfig.get(fromSectionKey);
+            if (toSection == null)
+            {
+            	if (patchPreserveEntries)
+            	{
+            		patchConfig.put(fromSectionKey, srcConfig.get(fromSectionKey));
+            	}
+            }
+            else
             {
                 Ini.Section fromSection = srcConfig.get(fromSectionKey);
-                Ini.Section toSection = patchConfig.get(fromSectionKey);
-                fromKeySet = fromSection.keySet();
-                toKeySet = null;
-                if (toSection != null) toKeySet = toSection.keySet();
-                for (String fromKey : fromKeySet)
+                Set<String> toKeySet = toSection.keySet();
+                for (String fromKey : fromSection.keySet())
                 {
-                    if (toSection == null)
-                    {
-                        logger.fine("Adding new section [" + fromSectionKey + "]");
-                        toSection = ((Profile)patchConfig).add(fromSectionKey);
-                    }
                     String fromValue = (patchResolveVariables ? fromSection.fetch(fromKey) : fromSection.get(fromKey));
                     if (patchPreserveEntries && !toKeySet.contains(fromKey))
                     {
@@ -104,7 +103,7 @@ public class IniFileConfigTask extends MultiMapConfigFileTask<String, Profile.Se
                                 + "\" in section [" + fromSectionKey + "]: " + fromValue);
                         toSection.add(fromKey, fromValue);
                     }
-                    else if (patchPreserveValues && toKeySet.contains(fromKey))
+                    if (patchPreserveValues && toKeySet.contains(fromKey))
                     {
                         logger.fine("Preserve value for key \"" + fromKey
                                 + "\" in section [" + fromSectionKey + "]: " + fromValue);
@@ -125,7 +124,14 @@ public class IniFileConfigTask extends MultiMapConfigFileTask<String, Profile.Se
 	 */
 	@Override
 	protected void deleteEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config) throws Exception {
-		((Profile)config).remove(entry.getSection(), entry.getKey());
+		if (entry.getKey() == null)
+		{
+			((Profile)config).remove(config.get(entry.getSection()));
+		}
+		else
+		{
+			((Profile)config).remove(entry.getSection(), entry.getKey());
+		}
 	}
 
 	/**
@@ -143,24 +149,36 @@ public class IniFileConfigTask extends MultiMapConfigFileTask<String, Profile.Se
             if (toSection == null)
             {
                 logger.fine("Adding new section [" + entry.getSection() + "]");
-                toSection = ((Profile) target).add(entry.getSection());
+                toSection = ((Profile)target).add(entry.getSection());
             }
-            if (toSection != null)
+            
+            Collection<String> preserveKeys;
+            if (entry.getKey() == null)
             {
-                String fromValue = (patchResolveVariables ? fromSection
-                        .fetch(entry.getKey()) : fromSection.get(entry.getKey()));
-                if (!toSection.containsKey(entry.getKey()))
-                {
-                    logger.fine("Preserve file entry \"" + entry.getKey()
-                            + "\" in section [" + entry.getSection() + "]: " + fromValue);
-                    toSection.add(entry.getKey(), fromValue);
-                }
-                else
-                {
-                    logger.fine("Preserve file entry value for key \"" + entry.getKey()
-                            + "\" in section [" + entry.getSection() + "]: " + fromValue);
-                    toSection.put(entry.getKey(), fromValue);
-                }
+            	preserveKeys = fromSection.keySet();
+            }
+            else
+            {
+            	preserveKeys = new ArrayList<String>();
+            	preserveKeys.add(entry.getKey());
+            }
+            
+            for (String key : preserveKeys)
+            {
+	            String fromValue = (patchResolveVariables ? fromSection
+	                    .fetch(key) : fromSection.get(key));
+	            if (!toSection.containsKey(key))
+	            {
+	                logger.fine("Preserve file entry \"" + key
+	                        + "\" in section [" + entry.getSection() + "]: " + fromValue);
+	                toSection.add(key, fromValue);
+	            }
+	            else
+	            {
+	                logger.fine("Preserve file entry value for key \"" + key
+	                        + "\" in section [" + entry.getSection() + "]: " + fromValue);
+	                toSection.put(key, fromValue);
+	            }
             }
         }
 	}

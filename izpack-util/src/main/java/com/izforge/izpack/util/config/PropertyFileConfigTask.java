@@ -75,22 +75,17 @@ public class PropertyFileConfigTask extends MultiMapConfigFileTask<String, Strin
 	@Override
 	protected void patch(MultiMap<String, String> srcConfig, MultiMap<String, String> patchConfig)
 	{
-        Set<String> toKeySet;
-        Set<String> fromKeySet;
-        toKeySet = patchConfig.keySet();
-        fromKeySet = srcConfig.keySet();
-        for (String key : fromKeySet)
+        for (String key : srcConfig.keySet())
         {
             String fromValue = (patchResolveVariables ? ((OptionMap)srcConfig).fetch(key) : srcConfig.get(key));
-            if (patchPreserveEntries && !toKeySet.contains(key))
+            if (patchPreserveEntries && !patchConfig.keySet().contains(key))
             {
                 logger.fine("Preserve key \"" + key + "\"");
                 patchConfig.add(key, fromValue);
             }
-            else if (patchPreserveValues && patchConfig.keySet().contains(key))
+            if (patchPreserveValues && patchConfig.keySet().contains(key))
             {
-                logger.fine("Preserve value for key \"" + key + "\": \"" + fromValue
-                        + "\"");
+                logger.fine("Preserve value for key \"" + key + "\": \"" + fromValue + "\"");
                 patchConfig.put(key, fromValue);
             }
         }
