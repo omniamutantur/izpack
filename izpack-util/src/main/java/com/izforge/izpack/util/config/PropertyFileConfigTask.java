@@ -24,7 +24,10 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import com.izforge.izpack.util.config.base.MultiMap;
@@ -78,179 +81,155 @@ public class PropertyFileConfigTask extends MultiMapConfigFileTask<String, Strin
         for (String key : srcConfig.keySet())
         {
             String fromValue = (patchResolveVariables ? ((OptionMap)srcConfig).fetch(key) : srcConfig.get(key));
-            if (patchPreserveEntries && !patchConfig.keySet().contains(key))
-            {
-                logger.fine("Preserve key \"" + key + "\"");
-                patchConfig.add(key, fromValue);
-            }
-            if (patchPreserveValues && patchConfig.keySet().contains(key))
+            boolean containsKey = patchConfig.keySet().contains(key);
+            if (patchPreserveValues && containsKey)
             {
                 logger.fine("Preserve value for key \"" + key + "\": \"" + fromValue + "\"");
                 patchConfig.put(key, fromValue);
+            }
+            if (patchPreserveEntries && !containsKey)
+            {
+                logger.fine("Preserve key \"" + key + "\"");
+                patchConfig.add(key, fromValue);
             }
         }
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * 
-	 * <p>The {@code Entry.section} property is not applicable to property files.</p>
 	 * 
 	 * @throws ClassCastException if {@code config} is not a type of {@link OptionMap}
 	 */
 	@Override
 	protected void deleteEntry(MultiMapConfigEntry entry, MultiMap<String, String> config) throws Exception {
-        for (int i = 0; i < config.length(entry.getKey()); i++)
-        {
-            if (entry.getValue() == null)
+		if (entry.getValue() == null)
+		{
+            logger.fine("Remove option key \"" + entry.getKey() + "\"");
+            config.remove(entry.getKey());			
+		}
+		else
+		{
+            String[] values = getValuesFromOptionMap((OptionMap) config, entry.getKey());	
+            Map<Integer, String> matchedEntries = findMatchingValues(values, entry);
+            for (int i : matchedEntries.keySet())
             {
-                String origValue = getValueFromOptionMap((OptionMap) config, entry.getKey(), i);
-
-                if (origValue != null)
-                {
-                    switch (entry.getLookupType())
-                    {
-                        case REGEXP:
-                            if (origValue.matches(entry.getValue()))
-                            {
-                                logger.fine("Remove option key \"" + entry.getKey() + "\"");
-                                config.remove(entry.getKey(), i);
-                                i--;
-                            }
-                            break;
-
-                        default:
-                            if (origValue.equals(entry.getValue()))
-                            {
-                                logger.fine("Remove option key \"" + entry.getKey() + "\"");
-                                config.remove(entry.getKey(), i);
-                                i--;
-                            }
-                            break;
-                    }
-                }
+            	config.remove(entry.getKey(), i);
             }
-            else
-            {
-                logger.fine("Remove option key \"" + entry.getKey() + "\"");
-                config.remove(entry.getKey());
-                i--;
-            }
-        }
+		}
 	}
 
 	@Override
-	protected void keepEntry(MultiMapConfigEntry entry, MultiMap<String, String> src, MultiMap<String, String> target) throws Exception {
-        for (int i = 0; i < src.length(entry.getKey()); i++)
-        {
-            String fromValue = getValueFromOptionMap((OptionMap) src, entry.getKey(), i);
-            if (fromValue != null)
-            {
-                if (entry.getValue() != null)
-                {
-                    switch (entry.getLookupType())
-                    {
-                        case REGEXP:
-                            if (fromValue.matches(entry.getValue()))
-                            {
-                                setOptions(entry, fromValue, (Options)target);
-                            }
-                            break;
-
-                        default:
-                            if (!fromValue.equals(entry.getValue()))
-                            {
-                                setOptions(entry, fromValue, (Options)target);
-                            }
-                            break;
-                    }
-                }
-                else
-                {
-                    setOptions(entry, fromValue, (Options)target);
-                }
-            }
-        }
+	protected void keepEntry(MultiMapConfigEntry entry, MultiMap<String, String> src, MultiMap<String, String> target) throws Exception
+	{
+		if (entry.getValue() == null)
+		{
+			//No lookup required: replace target key with source key
+			target.putAll(entry.getKey(), src.getAll(entry.getKey()));
+		}
+		else
+		{
+			//Do lookup: replace all matching target values with matching source values
+			String[] srcValues = getValuesFromOptionMap((OptionMap)src, entry.getKey());
+			String[] targetValues = getValuesFromOptionMap((OptionMap)target, entry.getKey());
+			Map<Integer, String> srcMatched = findMatchingValues(srcValues, entry);
+			Map<Integer, String> targetMatched = findMatchingValues(targetValues, entry);
+		
+			if (srcMatched.size() > 0)
+			{
+				int idx;
+				ArrayList<Integer> srcMatchedIdx = new ArrayList<Integer>(srcMatched.keySet());
+				ArrayList<Integer> targetMatchedIdx = new ArrayList<Integer>(targetMatched.keySet());
+				Collections.sort(srcMatchedIdx);
+				Collections.sort(targetMatchedIdx);
+				
+				//Put source values in original target positions where possible
+				for (idx = 0; idx < srcMatchedIdx.size() && idx < targetMatchedIdx.size(); idx++)
+				{
+					target.put(entry.getKey(), srcMatched.get(srcMatchedIdx.get(idx)), targetMatchedIdx.get(idx));
+				}
+				//There are more matched source values than target values: add remaining source values 
+				while (idx < srcMatchedIdx.size())
+				{
+					target.add(entry.getKey(), srcMatched.get(srcMatchedIdx.get(idx)));
+					idx++;
+				}
+				//There are more matched target values than source values: remove additional target values
+				while (idx < targetMatchedIdx.size())
+				{
+					target.remove(entry.getKey(), targetMatchedIdx.get(idx));
+					idx++;
+				}
+				
+			}
+		}
 	}
 
 	/**
 	 * {@inheritDoc}
 	 * 
-	 * @throws ClassCastException if config is not of type {@link Options}
+	 * @throws ClassCastException if config is not of type {@link OptionMap}
 	 */
 	@Override
 	protected void insertEntry(MultiMapConfigEntry entry, MultiMap<String, String> config) throws Exception 
 	{
-		setOptions(entry, null, (Options)config);
-	}
-	
-	/**
-	 * Sets the value of the specified {@code key} to the given {@code value}.
-	 * Where {@code lookupValue} is given, only keys with matching values will
-	 * be updated.
-	 *  
-	 * @param entry the data to set
-	 * @param lookupValue the old value to update, or null to just insert a
-	 * new entry
-	 * @param config the Options configuration to change
-	 */
-    protected void setOptions(MultiMapConfigEntry entry, String lookupValue, Options config) throws Exception
-    {
-        int found = 0;
-
-        for (int i = 0; i < config.length(entry.getKey()); i++)
+        String[] values = getValuesFromOptionMap((OptionMap)config, entry.getKey());        
+        Map<Integer, String> matchedEntries = findMatchingValues(values, entry);
+        
+        if (matchedEntries.isEmpty())
         {
-            if (lookupValue != null)
-            {
-                String origValue = getValueFromOptionMap(config, entry.getKey(), i);
-                String newValue = entry.calculateValue(origValue);
-
-                if (origValue != null)
-                {
-                    switch (entry.getLookupType())
-                    {
-                        case REGEXP:
-                            if (origValue.matches(lookupValue))
-                            {
-                                // found in patch target and in patch using reqexp value lookup;
-                                // overwrite in each case at the original position
-                                logger.fine("Preserve option file entry \"" + entry.getKey() + "\"");
-                                config.put(entry.getKey(), newValue, i);
-                                found++;
-                            }
-                            break;
-
-                        default:
-                            if (origValue.equals(lookupValue))
-                            {
-                                // found in patch target and in patch using plain value lookup;
-                                // overwrite in each case at the original position
-                            	config.put(entry.getKey(), newValue, i);
-                                found++;
-                            }
-                            break;
-                    }
-                }
-            }
-            else
-            {
-                // found in patch target and in patch;
-                // not looked up by value - overwrite in each case at the original position
-            	config.put(entry.getKey(), entry.getValue(), i);
-                found++;
-            }
+            //Key doesn't exist - add new key
+            logger.fine("Add entry for \"" + entry.getKey() + "\": " + entry.getValue());
+            config.put(entry.getKey(), entry.getCurrentValue(null));
         }
-
-        logger.fine("Patched " + found + " option file entries for key \"" + entry.getKey() + "\" found in original: " + entry.getValue());
-
-        if (found == 0)
-        {
-            // nothing existing to patch found in patch target
-            // but force preserving of patch entry
-            logger.fine("Add option file entry for \"" + entry.getKey() + "\": " + entry.getValue());
-            config.add(entry.getKey(), entry.getValue());
+        else
+    	{
+            //One or more values exist for key - replace matching entries with new value
+        	for (Map.Entry<Integer, String> matchedEntry : matchedEntries.entrySet())
+	        {
+	        	String newValue = entry.calculateValue(matchedEntry.getValue());
+	        	logger.fine("Set value for entry \"" + entry.getKey() + "\": " + matchedEntry.getValue() + " -> " + newValue);
+	            config.put(entry.getKey(), newValue, matchedEntry.getKey());
+	        }
         }
     }
+	
+	/**
+	 * Helper method for lookup-by-value operations, returns the index and value of matches
+	 * from specified {@code values}.
+	 * 
+	 * @param values list of values to check for matches
+	 * @param entry lookup key/value details
+	 * @return all matching values, keyed on value's original index in {@code values}
+	 * @see #getValuesFromOptionMap 
+	 */
+	protected Map<Integer, String> findMatchingValues(String[] values, MultiMapConfigEntry entry)
+	{
+		Map<Integer, String> matches = new HashMap<Integer, String>();
+		
+		for (int i=0; i < values.length; i++)
+		{
+			if (values[i] != null)
+			{
+                switch (entry.getLookupType())
+                {
+                    case REGEXP:
+                        if (values[i].matches(entry.getValue()))
+                        {
+                            matches.put(i, values[i]);
+                        }
+                        break;
+
+                    default:
+                        if (values[i].equals(entry.getValue()))
+                        {
+                            matches.put(i, values[i]);                            
+                        }
+                        break;
+                }
+			}
+		}		
+		return matches;
+	}
 
     /**
      * Resolves the value of the {@code key} in {@code map} with the specified
@@ -267,5 +246,21 @@ public class PropertyFileConfigTask extends MultiMapConfigFileTask<String, Strin
         return patchResolveVariables ?
                 map.fetch(key, index)
                 : map.get(key, index);
+    }
+    
+    /**
+     * Returns all values for the {@code key} in {@code map}. The value of
+     * {@code key} may contain ini4j variables if 
+     * {@link #patchResolveVariables} is {@code true}.
+     * 
+     * @param map the map to search
+     * @param key the key to resolve
+     * @return all values for the specified key
+     */
+    protected String[] getValuesFromOptionMap(OptionMap map, String key)
+    {
+        return patchResolveVariables ?
+                map.fetchAll(key, String[].class)
+                : map.getAll(key, String[].class);
     }
 }

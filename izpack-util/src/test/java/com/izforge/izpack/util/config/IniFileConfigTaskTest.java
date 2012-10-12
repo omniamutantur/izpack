@@ -58,7 +58,7 @@ public class IniFileConfigTaskTest {
 		File out = File.createTempFile("izpack-config-test", ".ini");
 		assertTrue(out.exists());
 		task.writeToFile(config, out);
-		MultiMap<String,Section> configCopy = task.readFromFile(out);
+		MultiMap<String, Section> configCopy = task.readFromFile(out);
 		verifyTestIni(configCopy);
 	}
 
@@ -266,12 +266,4 @@ public class IniFileConfigTaskTest {
 		assertNotNull(sectionA);
 		assertEquals("valueB", sectionA.get("propertyB"));
 	}
-
-	/**
-	@Test
-	public void testGetValueFromProfile() throws Exception 
-	{
-		fail("Not yet implemented"); // TODO
-	}
-	**/
 }
