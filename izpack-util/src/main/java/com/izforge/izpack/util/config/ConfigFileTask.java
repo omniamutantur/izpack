@@ -150,7 +150,7 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
         {
         	destFile = file;
         }
-        if (srcFile.equals(file))
+        if (srcFile != null && srcFile.equals(file))
         {
         	srcFile = null;
         }

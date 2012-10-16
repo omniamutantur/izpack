@@ -132,7 +132,6 @@ public class RegistryConfigTask extends IniFileConfigTask
 		}
     }
     
-    //TODO: override insertEntry/deleteEntry/keepEntry to wrap super call in setEntryKey
     @Override
     protected void insertEntry(MultiMapConfigEntry entry, MultiMap<String, Section> config) throws Exception
     {
@@ -154,13 +153,13 @@ public class RegistryConfigTask extends IniFileConfigTask
     protected MultiMapConfigEntry setEntryKey(MultiMapConfigEntry entry)
     {
     	MultiMapConfigEntry newEntry = entry.clone();
-    	if (entry.getSection() != null)
+    	if (entry.getSection() == null || entry.getSection().equals(""))
     	{
-    		newEntry.setSection(toKey + Registry.KEY_SEPARATOR + entry.getSection());
+    		newEntry.setSection(toKey);
     	}
     	else
     	{
-    		newEntry.setSection(toKey);
+    		newEntry.setSection(toKey + Registry.KEY_SEPARATOR + entry.getSection());
     	}
     	return newEntry;
     }
@@ -174,11 +173,11 @@ public class RegistryConfigTask extends IniFileConfigTask
      */
 	protected void validateRegAttributes() throws Exception
 	{
-    	if (file != null || filesets.size() > 0)
+    	if (file != null || destDir != null)
     	{
     		if (toKey != null)
     		{
-    			throw new Exception("Only one of tokey and tofile/<fileset> may be set.");    			
+    			throw new Exception("Only one of tokey and tofile/todir may be set.");    			
     		}
     		else
     		{
@@ -189,7 +188,7 @@ public class RegistryConfigTask extends IniFileConfigTask
     	{
     		if (toKey == null)
     		{
-    			throw new Exception("One of tokey and tofile/<fileset> must be set.");
+    			throw new Exception("One of tokey and tofile/todir must be set.");
     		}
     		else
     		{
