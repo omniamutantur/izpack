@@ -13,7 +13,10 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Instance of this class represents nested elements of a task configuration file.
+ * Instance of this class represents nested elements of a task configuration file. If 
+ * {@link #validateAttributes()} is not run on a modified instance before any of the
+ * {@code calculateXxxValue} methods, or the {@link #getCurrentValue(String) getCurrentValue}
+ * method, those methods may return an unexpected value or null.
  */
 public class MultiMapConfigEntry implements Cloneable
 {
@@ -252,6 +255,12 @@ public class MultiMapConfigEntry implements Cloneable
     /**
      * Handle operations for type <code>date</code>.
      *
+     * For the purposes of {@code Operation.INCREMENT} and {@code Operation.DECREMENT}:
+     * <ul><li>if {@code oldValue} is null, it is effectively equivalent to "now" or (if
+     * defined) to {@code default};</li>
+     * <li>where {@code value} is not a valid integer, a default increment/decrement of 1 will
+     * be applied.</li></ul> 
+     *
      * @param oldValue the current value read from the configuration file or <code>null</code>
      * if the <code>key</code> was not contained in the configuration file.
      */
@@ -294,18 +303,18 @@ public class MultiMapConfigEntry implements Cloneable
 
         if (operation != Operation.SET)
         {
-            int offset = 0;
+            int offset = 1;
             try
             {
                 offset = Integer.parseInt(value);
-                if (operation == Operation.DECREMENT)
-                {
-                    offset = -1 * offset;
-                }
             }
             catch (NumberFormatException e)
             {
-                throw new Exception("Value not an integer on " + key);
+                // swallow
+            }
+            if (operation == Operation.DECREMENT)
+            {
+                offset = -1 * offset;
             }
             currentValue.add(currentUnitValue.getCalendarField(), offset);
         }
@@ -314,7 +323,13 @@ public class MultiMapConfigEntry implements Cloneable
     }
 
     /**
-     * Handle operations for type <code>int</code>.
+     * Handle operations for type <code>int</code>. 
+     * 
+     * For the purposes of {@code Operation.INCREMENT} and {@code Operation.DECREMENT}:
+     * <ul><li>if {@code oldValue} is null, it is effectively equivalent to 0 or (if defined)
+     * to {@code default};</li>
+     * <li>where {@code value} is not a valid integer, a default increment/decrement of 1 will
+     * be applied.</li></ul> 
      *
      * @param oldValue the current value read from the configuration file or <code>null</code>
      * if the <code>key</code> was not contained in the configuration file.
@@ -406,7 +421,7 @@ public class MultiMapConfigEntry implements Cloneable
         }
         else if (operation == Operation.INCREMENT)
         {
-            newValue = currentValue + value;
+            newValue = currentValue + (value == null ? "" : value);
         }
 
         return newValue;
@@ -419,9 +434,9 @@ public class MultiMapConfigEntry implements Cloneable
      */
     protected void validateAttributes() throws Exception
     {
-        if (key == null)
+        if (key == null && section == null)
         {
-        	throw new Exception("key is mandatory");
+        	throw new Exception("at least one of \"key\" or \"section\" must be specified");
     	}
         if (value == null && defaultValue == null) 
         { 
@@ -442,15 +457,22 @@ public class MultiMapConfigEntry implements Cloneable
     }
 
     /**
-     * <p>Return the working value of the specified entry before updating. 
-     * This is determined by whether {@code oldValue} is null (i.e. no 
-     * previous value found) or not, and by the operation, value, and 
-     * defaultValue attributes for the instance.</p>
+     * <p>Return the working value of the specified entry before updating. This is determined
+     * by whether {@code oldValue} is null (i.e. no previous value found), and by the 
+     * {@code operation}, {@code value}, and {@code defaultValue} attributes for the instance.</p>
      * 
-     * <p>If argument is null and the operation <b>is not</b> {@code SET},
-     * defaultValue is returned; where the operation <b>is</b> {@code SET},
-     * defaultValue is returned unless value is set. The original argument is
-     * always returned unchanged when not null.</p>
+     * <p>For any operation <b>except</b> {@code SET}, {@code oldValue} is always returned 
+     * when not null. Otherwise, {@code defaultValue} is returned (even if null).</p>
+     * 
+     * <p>Where the operation is {@code SET}, {@code value} is always returned if 
+     * {@code defaultValue} is not defined. Otherwise:
+     * <ul><li>if {@code value} is not defined and {@code oldValue} is non-null, 
+     * {@code oldValue} is returned unchanged;</li>
+     * <li>if {@code oldValue} is null and {@code defaultValue} is defined,
+     * {@code defaultValue} returned (i.e. {@code value} is ignored);</li>
+     * <li>if {@code oldValue}, {@code value}, and {@code defaultValue} are all defined, 
+     * {@code value} is returned.</li><ul></p>
+     *  
      * 
      * @param oldValue the previous value of the entry, or null if it didn't 
      * exist
@@ -461,13 +483,23 @@ public class MultiMapConfigEntry implements Cloneable
         String ret = null;
         if (operation == Operation.SET)
         {
-            // If only value is specified, the value is set to it
+            // If only value is specified, the current value is set to it
             // regardless of its previous value.
             if (value != null && defaultValue == null)
             {
                 ret = value;
             }
-            else if (value == null && defaultValue != null)
+            // If the value did not exist in the configuration file, the value
+            // is set to default, whether value is specified or not.
+            else if (oldValue == null)
+            {
+            	return defaultValue;
+            }
+            else
+            {
+            	ret = (value == null ? oldValue : value);
+            }
+/*            else if (value == null && defaultValue != null)
             {
                 // If only default is specified and the value previously
                 // existed in the configuration file, it is unchanged.
@@ -498,6 +530,7 @@ public class MultiMapConfigEntry implements Cloneable
             		ret = defaultValue;
             	}
             }
+            */
         }
         else
         {

@@ -15,6 +15,7 @@ import com.izforge.izpack.util.config.base.Profile.Section;
 import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.config.base.Reg;
 import com.izforge.izpack.util.config.base.Registry;
+import com.izforge.izpack.util.file.types.FileSet;
 
 public class RegistryConfigTaskTest {
 
@@ -101,36 +102,38 @@ public class RegistryConfigTaskTest {
 	public void testValidateRegAttributes() throws Exception
 	{
 		File fooFile = new File("foo.bar");
-		Exception exception = null;
 		
 		//test reg file/dir mode (no key name)
 		task.setToFile(fooFile);
-		exception = tryValidation();
-		assertNull("Unexpected validation fail (only toFile set): " 
-				+ (exception == null ? "" : exception.getMessage()), exception);
+		tryValidation(true, "Unexpected validation fail (only toFile set)");
 		task.setToFile(null);
 		task.setTargetFile(null);
 		task.setToDir(fooFile);
-		assertNull("Unexpected validation fail (only toDir set): "
-				+ (exception == null ? "" : exception.getMessage()), exception);
-		task.setToDir(null);
+		task.addFileSet(new FileSet());
+		tryValidation(true, "Unexpected validation fail (only toDir set)");
+
+		task = new RegistryConfigTask(); 
 		
 		//test registry mode (no file attributes)
 		task.setToKey("fooKey");
-		assertNull("Unexpected validation fail: only toKey set", tryValidation());
+		tryValidation(true, "Unexpected validation fail (only toKey set)");
 		
 		//test file/dir/key both set
 		task.setToFile(fooFile);
-		assertNotNull("Expected validation to fail: toKey and toFile set", tryValidation());
+		tryValidation(false, "Expected validation to fail (toKey and toFile set)");
 		task.setToFile(null);
 		task.setToDir(fooFile);
-		assertNotNull("Expected validation to fail: toKey and toDir set", tryValidation());
+		tryValidation(false, "Expected validation to fail (toKey and toDir set)");
+		task.setToDir(null);
+		task.addFileSet(new FileSet());
+		tryValidation(false, "Expected validation to fail (toKey and fileset set)");
 	}
 	
 	/* NON-JAVADOC
-	 * Wrap validateRegAttributes in try/catch, and return any exception caught 
+	 * Wrap validateRegAttributes in try/catch, and fail if exception-is-null does 
+	 * not match value of shouldValidate (null exception mean successful validation). 
 	 */
-	private Exception tryValidation()
+	private void tryValidation(boolean shouldValidate, String errMessage)
 	{
 		Exception exception = null;
 		try
@@ -141,7 +144,10 @@ public class RegistryConfigTaskTest {
 		{
 			exception = e;
 		}
-		return exception;
+		if (!(exception == null == shouldValidate))
+		{
+			fail(errMessage + (exception == null ? "" : ": " + exception.getMessage()));
+		}
 	}
 
 /* TODO: implement in izpack-test

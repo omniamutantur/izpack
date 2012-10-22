@@ -192,6 +192,10 @@ public class RegistryConfigTask extends IniFileConfigTask
     		}
     		else
     		{
+    			if (filesets.size() > 0)
+    			{
+    				throw new Exception("Fileset cannot be used as a source when tokey is set");
+    			}
     			for (MultiMapConfigEntry entry : entries)
     			{
     				entry.validateAttributes();

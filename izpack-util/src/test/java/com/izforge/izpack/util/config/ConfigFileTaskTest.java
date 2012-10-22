@@ -24,42 +24,45 @@ public class ConfigFileTaskTest
 		File barFile = new File("bar.foo");
 		
 		//test invalid: no toFile
-		assertNotNull("Expected validation to fail: no toFile set", tryValidation());
+		tryValidation(false, "Expected validation to fail when no toFile set");
 		
 		// test valid: only toFile set
 		task.setToFile(fooFile);
-		assertNull("Unexpected validation fail: only toFile set", tryValidation());
+		tryValidation(true, "Unexpected validation fail (only toFile set)");
 		assertEquals(fooFile, task.getDestFile());
+		
 		//test valid: toFile and targetFile set
 		task.setTargetFile(barFile);
-		assertNull("Unexpected validation fail: toFile and targetFile set", tryValidation());
+		tryValidation(true, "Unexpected validation fail (toFile and targetFile set)");
 		assertEquals(barFile, task.getDestFile());
+		
 		//test valid: toFile, targetFile, and srcFile set
 		task.setSrcFile(fooFile);
-		assertNull("Unexpected validation fail: srcFile set to same as toFile", tryValidation());
+		tryValidation(true, "Unexpected validation fail (srcFile set to same as toFile)");
 		assertNull("srcFile should be null when equal to toFile", task.srcFile);
 		
 		//test invalid combination of !forceOverwrite and !create
 		task.setOverwrite(false);
 		task.setCreate(false);
-		assertNotNull("Expected validation to fail when overwrite and create are false", tryValidation());
+		tryValidation(false, "Expected validation to fail when overwrite and create are false");
 
 		//test valid combinations of forceOverwrite and/or create
 		task.setOverwrite(true);
 		task.setCreate(true);
-		assertNull("Unexpected validation fail: overwrite and create are true", tryValidation());
+		tryValidation(true, "Unexpected validation fail (overwrite and create are true)");
 		task.setOverwrite(true);
 		task.setCreate(false);
-		assertNull("Unexpected validation fail: overwrite is true, create is false", tryValidation());
+		tryValidation(true, "Unexpected validation fail (overwrite is true, create is false)");
 		task.setOverwrite(false);
 		task.setCreate(true);
-		assertNull("Unexpected validation fail: overwrite is false, create is true", tryValidation());
+		tryValidation(true, "Unexpected validation fail (overwrite is false, create is true)");
 	}
 	
 	/* NON-JAVADOC
-	 * Wrap validateAttributes in try/catch, and return any exception caught 
+	 * Wrap validateAttributes in try/catch, and fail if exception-is-null does 
+	 * not match value of shouldValidate (null exception mean successful validation).
 	 */
-	private Exception tryValidation()
+	private void tryValidation(boolean shouldValidate, String errMessage)
 	{
 		Exception exception = null;
 		try
@@ -70,7 +73,10 @@ public class ConfigFileTaskTest
 		{
 			exception = e;
 		}
-		return exception;
+		if (!(exception == null == shouldValidate))
+		{
+			fail(errMessage + (exception == null ? "" : ": " + exception.getMessage()));
+		}
 	}
 
 	/**
