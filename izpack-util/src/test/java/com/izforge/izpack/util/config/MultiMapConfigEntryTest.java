@@ -203,7 +203,6 @@ public class MultiMapConfigEntryTest {
 		Calendar now = Calendar.getInstance();
 		now.setTimeZone(TimeZone.getTimeZone("GMT"));
 		int thisYear = now.get(Calendar.YEAR);
-		String nowStub = new SimpleDateFormat("/MM/dd HH:mm:ss.SSS").format(now.getTime());
 		
 		entry.setPattern("yyyy/MM/dd HH:mm:ss.SSS");
 		entry.setType(Type.DATE);
@@ -214,7 +213,7 @@ public class MultiMapConfigEntryTest {
 		entry.setValue("10");
 		entry.setDefault(null);
 		assertEquals("2010/01/01 20:00:01.010", entry.calculateValue("2000/01/01 20:00:01.010"));	//value, oldValue			= oldValue+value
-		assertEquals((thisYear + 10) + nowStub, entry.calculateValue(null));						//value						= "now"+value
+		assertEquals(String.valueOf(thisYear + 10), entry.calculateValue(null).substring(0, 4));						//value						= "now"+value
 		entry.setDefault("1970/01/01 00:00:00.000");
 		assertEquals("2010/01/01 20:00:01.010", entry.calculateValue("2000/01/01 20:00:01.010"));	//value, default, oldValue	= oldValue+value
 		assertEquals("1980/01/01 00:00:00.000", entry.calculateValue(null));						//value, default			= default+value
@@ -227,7 +226,7 @@ public class MultiMapConfigEntryTest {
 		entry.setValue("10");
 		entry.setDefault(null);
 		assertEquals("1990/01/01 20:00:01.010", entry.calculateValue("2000/01/01 20:00:01.010"));	//value, oldValue			= oldValue-value
-		assertEquals((thisYear - 10) + nowStub, entry.calculateValue(null));						//value						= "now"-value
+		assertEquals(String.valueOf(thisYear - 10), entry.calculateValue(null).substring(0, 4));						//value						= "now"-value
 		entry.setDefault("1970/01/01 00:00:00.000");
 		assertEquals("1990/01/01 20:00:01.010", entry.calculateValue("2000/01/01 20:00:01.010"));	//value, default, oldValue	= oldValue-value
 		assertEquals("1960/01/01 00:00:00.000", entry.calculateValue(null));						//value, default			= default-value
