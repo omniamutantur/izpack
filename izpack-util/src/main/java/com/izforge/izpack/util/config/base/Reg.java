@@ -27,8 +27,8 @@ import java.util.concurrent.ExecutionException;
 
 import com.izforge.izpack.util.config.base.spi.IniFormatter;
 import com.izforge.izpack.util.config.base.spi.IniHandler;
-import com.izforge.izpack.util.config.base.spi.IniParser;
 import com.izforge.izpack.util.config.base.spi.RegBuilder;
+import com.izforge.izpack.util.config.base.spi.RegParser;
 
 public class Reg extends BasicRegistry implements Registry, Persistable, Configurable
 {
@@ -180,7 +180,7 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
             throw new InvalidFileFormatException("Unsupported version: " + buff.toString());
         }
 
-        IniParser.newInstance(getConfig()).parse(input, newBuilder());
+        RegParser.newInstance(getConfig()).parse(input, newBuilder());
     }
 
     @Override public void load(File input) throws IOException, InvalidFileFormatException
@@ -190,7 +190,7 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
 
     public void read(String registryKey, boolean create) throws IOException
     {
-        File tmp = createTempFile();
+        File tmp = createTempFilename();
 
         try
         {
@@ -247,7 +247,7 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
 
     public void write() throws IOException
     {
-        File tmp = createTempFile();
+        File tmp = createTempFilename();
 
         try
         {
@@ -322,12 +322,10 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         }
     }
 
-    private File createTempFile() throws IOException
+    private File createTempFilename() throws IOException
     {
         File ret = File.createTempFile(TMP_PREFIX, DEFAULT_SUFFIX);
-
-        ret.deleteOnExit();
-
+        ret.delete(); //Windows reg.exe errors out if file already exists
         return ret;
     }
 

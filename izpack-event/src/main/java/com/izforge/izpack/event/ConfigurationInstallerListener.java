@@ -21,6 +21,7 @@
 
 package com.izforge.izpack.event;
 
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -89,10 +90,6 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     public static final String SPEC_CONFIGURABLES = "configurables";
     public static final String SPEC_VARIABLES = "variables";
     public static final String SPEC_VARIABLE = "variable";
-    public static final String SPEC_CONFIG_REG = "registry";
-    public static final String SPEC_CONFIG_PROP = "propertyfile";
-    public static final String SPEC_CONFIG_INI = "inifile";
-    public static final String SPEC_CONIG_XML = "xmlfile";
 	public static final String SPEC_ENTRY = "entry";
 	public static final String SPEC_FILESET = "fileset";
 	public static final String SPEC_MAPPER = "mapper";
@@ -142,6 +139,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 	public static final String SPEC_KEY = "key";
 	public static final String SPEC_VALUE = "value";
 	public static final String SPEC_CASESENSITIVE = "casesensitive";
+	public static final String SPEC_HANDLEDIRSEP = "handledirsep";
 	public static final String SPEC_FS_DIR = "dir";
 	public static final String SPEC_FS_FILE = "file";
 	public static final String SPEC_FS_INCLUDES = "includes";
@@ -267,7 +265,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             packActions.put(ActionBase.BEFOREPACKS, new ArrayList<ConfigurationAction>());
             packActions.put(ActionBase.AFTERPACKS, new ArrayList<ConfigurationAction>());
 
-            // Get all entries for antcalls.
+            // Get all entries for config actions.
             List<IXMLElement> configActionEntries = pack.getChildrenNamed(SPEC_ACTION);
             if (configActionEntries != null)
             {
@@ -427,18 +425,20 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 }
                 catch (Exception e)
                 {
-                    throw new InstallerException(e);
+                    throw new InstallerException("Unexpected error performing " + order + " action for " + packName, e);
                 }
             }
         }
     }
 
     /**
-     * Returns an ant call which is defined in the given XML element.
+     * Returns a configuration action which is defined in the given XML element. Includes
+     * all defined configurable types and variables.
      *
-     * @param el XML element which contains the description of an ant call
-     * @return an ant call which is defined in the given XML element
-     * @throws InstallerException
+     * @param el XML element which contains the description of a configuration action
+     * @return an configuration action which is defined in the given XML element
+     * @throws InstallerException in the event of any error parsing the XML or constructing
+     * the configuration action representation
      */
     private ConfigurationAction readConfigAction(IXMLElement el) throws InstallerException
     {
@@ -447,13 +447,14 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             return null;
         }
         ConfigurationAction act = new ConfigurationAction();
+        String order = spec.getRequiredAttribute(el, ActionBase.ORDER);
         try
         {
-            act.setOrder(spec.getRequiredAttribute(el, ActionBase.ORDER));
+            act.setOrder(order);
         }
         catch (Exception e)
         {
-            throw new InstallerException(e);
+            throw new InstallerException("Unexpected error setting action order for configuration", e);
         }
 
         // Read specific attributes and nested elements
@@ -585,16 +586,16 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         {
             task.addFileSet(fs);
         }
-        try
+        for (FileNameMapper mapper : readMappers(config.getChildrenNamed(SPEC_MAPPER)))
         {
-            for (FileNameMapper mapper : readMappers(config.getChildrenNamed(SPEC_MAPPER)))
-            {
-                task.add(mapper);
-            }
-        }
-        catch (Exception e)
-        {
-            throw new InstallerException(e.getMessage());
+        	try
+        	{
+        		task.add(mapper);
+        	}
+        	catch (Exception e)
+        	{
+        		throw new InstallerException("Unexpected error adding mapper to configuration task", e);
+        	}
         }
 	}
 
@@ -611,16 +612,16 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 configType = ConfigType.getFromAttribute(attrib);
                 if (configType == null)
                 {
-                    throw new InstallerException("Unknown configurable type '" + attrib + "'");
+                    parseError(config, "Unknown configurable type '" + attrib + "'");
                 }
             }
             else
             {
-                logger.warning("ignoring unexpected character data in element " + SPEC_CONFIGURABLES);
+                parseWarn(config, "ignoring unexpected character data in element " + SPEC_CONFIGURABLES);
                 continue;
             }
 
-            ConfigurableTask task;
+            ConfigurableTask task = null;
             switch (configType)
             {
                 case OPTIONS:
@@ -655,8 +656,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
 
                 default:
                     // This should never happen
-                    throw new InstallerException(
-                            "Type '" + configType.getAttribute() + "' currently not allowed for Configurable");
+                    parseError("Type '" + configType.getAttribute() + "' currently not allowed for Configurable");
             }
 
             configtasks.add(new ConfigurationActionTask(task, getAttribute(config, SPEC_CONDITION),
@@ -666,7 +666,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
     }
 
 
-    public <K, V> void readAndAddMultiMapConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
+    private <K, V> void readAndAddMultiMapConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
     {    	
         for (IXMLElement entrySpec : entries)
         {
@@ -679,7 +679,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         }
     }
         
-    public <K, V> void readAndAddRegistryConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
+    private <K, V> void readAndAddRegistryConfigEntries(List<IXMLElement> entries, MultiMapConfigFileTask<K, V> task) throws InstallerException
     {
         for (IXMLElement entrySpec : entries)
         {
@@ -702,7 +702,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             {
                 // TODO Inform about misconfigured configuration actions during
                 // compilation
-                throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
+                parseError(entrySpec, MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
                 		SPEC_DATATYPE, attrib));
             }
             entry.setType(type);
@@ -714,7 +714,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             if (lookupType == null)
             {
                 // TODO Inform about misconfigured configuration actions during compilation
-                throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
+                parseError(entrySpec, MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
                 		SPEC_LOOKUPTYPE, attrib));
             }
             entry.setLookupType(lookupType);
@@ -726,9 +726,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             if (operation == null)
             {
               // TODO Inform about misconfigured configuration actions during compilation
-              throw new InstallerException(
-                  MessageFormat.format(
-                      ERRMSG_CONFIGACTION_BADATTR,
+              parseError(entrySpec, MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
                       SPEC_OPERATION, attrib)
                   );
             }
@@ -741,7 +739,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             if (unit == null)
             {
                 // TODO Inform about misconfigured configuration actions during compilation
-                throw new InstallerException(MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
+                parseError(entrySpec, MessageFormat.format(ERRMSG_CONFIGACTION_BADATTR,
                 		SPEC_UNIT, attrib));
             }
             entry.setUnit(unit);
@@ -760,128 +758,170 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         }
     }
 
+    /**
+     * Reads a list of &lt;fileset&gt; elements and returns a corresponding list of instances.
+     * Also performs validation on element attributes. A {@link FileSet} object validates 
+     * paths set for 'file' and 'dir' attributes, which must exist.
+     * 
+     * @param filesetSpecs a list of &lt;fileset&gt; elements
+     * @return a corresponding list of {@link FileSet} instances
+     * @throws InstallerException in the event of any parsing or validation errors
+     */
     protected List<FileSet> readFileSets(List<IXMLElement> filesetSpecs)
             throws InstallerException
     {
         List<FileSet> filesets = new ArrayList<FileSet>();
-        try
+ 
+    	String installPath = getInstallData().getInstallPath();
+        for (IXMLElement filesetSpec : filesetSpecs)
         {
-            String installPath = getInstallData().getInstallPath();
-            for (IXMLElement filesetSpec : filesetSpecs)
+            FileSet fileset = new FileSet();
+
+            String fsDir = getAttribute(filesetSpec, SPEC_FS_DIR);
+            String fsFile = getAttribute(filesetSpec, SPEC_FS_FILE);
+            if ( (fsDir == null && fsFile == null) || (fsDir != null && fsFile != null))
             {
-                FileSet fileset = new FileSet();
-
-                String strattr = getAttribute(filesetSpec, SPEC_FS_DIR);
-                if (strattr != null)
-                {
-                    fileset.setDir(FileUtil.getAbsoluteFile(strattr, installPath));
-                }
-
-                strattr = getAttribute(filesetSpec, SPEC_FS_FILE);
-                if (strattr != null)
-                {
-                    fileset.setFile(FileUtil.getAbsoluteFile(strattr, installPath));
-                }
-                else
-                {
-                    if (fileset.getDir() == null)
-                    {
-                        throw new InstallerException(
-                                "At least one of both attributes, 'dir' or 'file' required in fileset");
-                    }
-                }
-
-                strattr = getAttribute(filesetSpec, SPEC_FS_INCLUDES);
-                if (strattr != null)
-                {
-                    fileset.setIncludes(strattr);
-                }
-
-                strattr = getAttribute(filesetSpec, SPEC_FS_EXCLUDES);
-                if (strattr != null)
-                {
-                    fileset.setExcludes(strattr);
-                }
-
-                Boolean boolAttr = getBooleanAttribute(filesetSpec, SPEC_CASESENSITIVE);
-                if (boolAttr != null)
-                {
-                    fileset.setCaseSensitive(boolAttr);
-                }
-
-                boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_DEFEXCLUDES);
-                if (boolAttr != null)
-                {
-                    fileset.setDefaultexcludes(boolAttr);
-                }
-
-                boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_FOLLOWSLINKS);
-                if (boolAttr != null)
-                {
-                    fileset.setFollowSymlinks(boolAttr);
-                }
-
-                readAndAddFilesetIncludes(filesetSpec.getChildrenNamed(SPEC_FS_INCLUDE), fileset);
-                readAndAddFilesetExcludes(filesetSpec.getChildrenNamed(SPEC_FS_EXCLUDE), fileset);
-
-                filesets.add(fileset);
+            	parseError(filesetSpec, "Exactly one of the attributes 'dir' and 'file' required in fileset");
             }
+            try
+            {
+	            if (fsDir != null)
+	            {
+	                fileset.setDir(FileUtil.getAbsoluteFile(fsDir, installPath));
+	            }
+	            else
+	            {
+	                fileset.setFile(FileUtil.getAbsoluteFile(fsFile, installPath));
+	            }
+            }
+            catch (Exception e)
+            {
+            	parseError(filesetSpec, "Unexpected error creating fileset", e);
+            }
+
+            String strattr = null;
+            strattr = getAttribute(filesetSpec, SPEC_FS_INCLUDES);
+            if (strattr != null)
+            {
+                fileset.setIncludes(strattr);
+            }
+
+            strattr = getAttribute(filesetSpec, SPEC_FS_EXCLUDES);
+            if (strattr != null)
+            {
+                fileset.setExcludes(strattr);
+            }
+
+            Boolean boolAttr = getBooleanAttribute(filesetSpec, SPEC_CASESENSITIVE);
+            if (boolAttr != null)
+            {
+                fileset.setCaseSensitive(boolAttr);
+            }
+
+            boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_DEFEXCLUDES);
+            if (boolAttr != null)
+            {
+                fileset.setDefaultexcludes(boolAttr);
+            }
+
+            boolAttr = getBooleanAttribute(filesetSpec, SPEC_FS_FOLLOWSLINKS);
+            if (boolAttr != null)
+            {
+                fileset.setFollowSymlinks(boolAttr);
+            }
+
+            readAndAddFilesetIncludes(filesetSpec.getChildrenNamed(SPEC_FS_INCLUDE), fileset);
+            readAndAddFilesetExcludes(filesetSpec.getChildrenNamed(SPEC_FS_EXCLUDE), fileset);
+
+            filesets.add(fileset);
         }
-        catch (Exception e)
-        {
-            throw new InstallerException(e);
-        }
+
         return filesets;
     }
 
+    /**
+     * Reads a list of &lt;mapper&gt; elements and returns a corresponding list of instances.
+     * Also performs validation on element attributes.
+     * 
+     * @param mapperSpecs a list of &lt;mapper&gt; elements
+     * @return a corresponding list of {@link FileNameMapper} instances
+     * @throws InstallerException in the event of any parsing, validation, or instantiation 
+     * error
+     */
     protected List<FileNameMapper> readMappers(List<IXMLElement> mapperSpecs)
             throws InstallerException
     {
         List<FileNameMapper> mappers = new ArrayList<FileNameMapper>();
-        try
+        for (IXMLElement mapperSpec : mapperSpecs)
         {
-            for (IXMLElement mapperSpec : mapperSpecs)
+        	//determine and validate mapper type
+            String attrib = requireAttribute(mapperSpec, SPEC_MAPPER_TYPE);
+            Mapper.MapperType mappertype = null;
+            if (attrib != null)
             {
-                String attrib = requireAttribute(mapperSpec, SPEC_MAPPER_TYPE);
-                Mapper.MapperType mappertype;
-                if (attrib != null)
+                mappertype = Mapper.MapperType.getFromAttribute(attrib);
+                if (mappertype == null)
                 {
-                    mappertype = Mapper.MapperType.getFromAttribute(attrib);
-                    if (mappertype == null)
-                    {
-                        throw new InstallerException("Unknown filename mapper type '" + attrib + "'");
-                    }
+                    parseError(mapperSpec, "Unknown filename mapper type '" + attrib + "'");
                 }
-                else
-                {
-                    throw new InstallerException("Missing filename mapper type");
-                }
-                FileNameMapper mapper = (FileNameMapper) Class.forName(mappertype.getImplementation()).newInstance();
-                if (mapper instanceof GlobPatternMapper)
-                {
-                    Boolean boolAttr = getBooleanAttribute(mapperSpec, SPEC_CASESENSITIVE);
-                    if (boolAttr != null)
-                    {
-                        ((GlobPatternMapper) mapper).setCaseSensitive(boolAttr);
-                    }
-                    mapper.setFrom(requireAttribute(mapperSpec, SPEC_MAPPER_FROM));
-                    mapper.setTo(requireAttribute(mapperSpec, SPEC_MAPPER_TO));
-                }
-                else
-                {
-                    throw new InstallerException("Filename mapper type \"" + "\" currently not supported");
-                }
-
-                mappers.add(mapper);
             }
-        }
-        catch (Exception e)
-        {
-            throw new InstallerException(e);
+            else
+            {
+                parseError(mapperSpec, "Missing filename mapper type");
+            }
+            
+            //instantiate mapper
+            FileNameMapper mapper = null;
+			try {
+				mapper = (FileNameMapper) Class.forName(mappertype.getImplementation()).newInstance();
+			} catch (Exception e) {
+				parseError(mapperSpec, "Could not create mapper for type " + mappertype.toString(), e);
+			}
+
+			//use reflection to validate and set 'casesensitive' and 'handledirsep' attributes
+			Boolean boolAttr = getBooleanAttribute(mapperSpec, SPEC_CASESENSITIVE);
+            if (boolAttr != null)
+            {
+            	Method setCaseSensitive = null;
+            	try
+            	{
+	                setCaseSensitive = mapper.getClass().getDeclaredMethod("setCaseSensitive", Boolean.TYPE);
+	                setCaseSensitive.invoke(mapper, boolAttr);
+            	}
+            	catch (Exception e)
+            	{
+            		parseError((setCaseSensitive == null ? 
+            						"Attribute 'casesensitive' not supported by" :
+            						"Failed to set attribute 'casesensitive' on") 
+            					+ " filename mapper type " + mappertype.toString(), e);
+            	}
+            }
+			boolAttr = getBooleanAttribute(mapperSpec, SPEC_HANDLEDIRSEP);
+            if (boolAttr != null)
+            {
+            	Method handleDirSep = null;
+            	try
+            	{
+            		handleDirSep = mapper.getClass().getDeclaredMethod("setHandleDirSep", Boolean.TYPE);
+            		handleDirSep.invoke(mapper, boolAttr);
+            	}
+            	catch (Exception e)
+            	{
+            		parseError((handleDirSep == null ? 
+	        						"Attribute 'handledirsep' not supported by" :
+	        						"Failed to set attribute 'handledirsep' on") 
+        					    + " filename mapper type " + mappertype.toString(), e);
+            	}
+            }
+
+            //set standard mapper properties
+            mapper.setFrom(requireAttribute(mapperSpec, SPEC_MAPPER_FROM));
+            mapper.setTo(requireAttribute(mapperSpec, SPEC_MAPPER_TO));
+            mappers.add(mapper);
         }
         return mappers;
     }
-
+    
     private void readAndAddFilesetIncludes(List<IXMLElement> includeSpecs, FileSet fileset)
             throws InstallerException
     {
@@ -979,10 +1019,10 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 value = getAttribute(var, "regkey");
                 if (value != null)
                 {
-                    String regroot = getAttribute(var, "regroot");
-                    String regvalue = getAttribute(var, "regvalue");
                     if (dynamicVariable.getValue() == null)
                     {
+                        String regvalue = requireAttribute(var, "regvalue");
+                        String regroot = getAttribute(var, "regroot");
                         dynamicVariable.setValue(
                                 new RegistryValue(regroot, value, regvalue));
                     }
@@ -992,14 +1032,14 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     }
                 }
                 // Check for value from plain config file
-                value = var.getAttribute("file");
+                value = getAttribute(var, "file");
                 if (value != null)
                 {
-                    String stype = var.getAttribute("type");
-                    String filesection = var.getAttribute("section");
-                    String filekey = requireAttribute(var, "key");
                     if (dynamicVariable.getValue() == null)
                     {
+                        String filekey = requireAttribute(var, "key");
+                        String stype = requireAttribute(var, "type");
+                        String filesection = getAttribute(var, "section");
                         dynamicVariable.setValue(new PlainConfigFileValue(value, getConfigFileType(
                                 name, stype), filesection, filekey));
                     }
@@ -1010,15 +1050,15 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     }
                 }
                 // Check for value from config file entry in a zip file
-                value = var.getAttribute("zipfile");
+                value = getAttribute(var, "zipfile");
                 if (value != null)
                 {
-                    String entryname = requireAttribute(var, "entry");
-                    String stype = var.getAttribute("type");
-                    String filesection = var.getAttribute("section");
-                    String filekey = requireAttribute(var, "key");
                     if (dynamicVariable.getValue() == null)
                     {
+                        String entryname = requireAttribute(var, "entry");
+                        String filekey = requireAttribute(var, "key");
+                        String stype = requireAttribute(var, "type");
+                        String filesection = getAttribute(var, "section");
                         dynamicVariable.setValue(new ZipEntryConfigFileValue(value, entryname,
                                                                              getConfigFileType(name, stype), filesection,
                                                                              filekey));
@@ -1030,15 +1070,15 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     }
                 }
                 // Check for value from config file entry in a jar file
-                value = var.getAttribute("jarfile");
+                value = getAttribute(var, "jarfile");
                 if (value != null)
                 {
-                    String entryname = requireAttribute(var, "entry");
-                    String stype = var.getAttribute("type");
-                    String filesection = var.getAttribute("section");
-                    String filekey = requireAttribute(var, "key");
                     if (dynamicVariable.getValue() == null)
                     {
+                        String entryname = requireAttribute(var, "entry");
+                        String filekey = requireAttribute(var, "key");
+                        String stype = requireAttribute(var, "type");
+                        String filesection = getAttribute(var, "section");
                         dynamicVariable.setValue(new JarEntryConfigValue(value, entryname,
                                                                          getConfigFileType(name, stype), filesection,
                                                                          filekey));
@@ -1055,13 +1095,13 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 {
                     if (dynamicVariable.getValue() == null)
                     {
-                        String dir = var.getAttribute("dir");
-                        String exectype = var.getAttribute("type");
-                        String boolval = var.getAttribute("stderr");
+                        String exectype = getAttribute(var, "type");
+                        String dir = getAttribute(var, "dir");
+                        Boolean boolval = getBooleanAttribute(var, "stderr");
                         boolean stderr = false;
                         if (boolval != null)
                         {
-                            stderr = Boolean.parseBoolean(boolval);
+                            stderr = boolval;
                         }
 
                         if (value.length() <= 0)
@@ -1083,7 +1123,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                             }
                         }
                         String[] cmdarr = new String[cmd.size()];
-                        if (exectype.equalsIgnoreCase("process") || exectype == null)
+                        if (exectype == null || exectype.equalsIgnoreCase("process"))
                         {
                             dynamicVariable.setValue(new ExecValue(cmd.toArray(cmdarr), dir, false, stderr));
                         }
@@ -1108,17 +1148,18 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 }
 
                 // Check whether dynamic variable has to be evaluated only once during installation
-                value = getAttribute(var, "checkonce");
-                if (value != null)
+                Boolean boolValue = null;
+                boolValue = getBooleanAttribute(var, "checkonce");
+                if (boolValue != null)
                 {
-                    dynamicVariable.setCheckonce(Boolean.valueOf(value));
+                    dynamicVariable.setCheckonce(boolValue);
                 }
 
                 // Check whether evaluation failures of the dynamic variable should be ignored
-                value = getAttribute(var, "ignorefailure");
-                if (value != null)
+                boolValue = getBooleanAttribute(var, "ignorefailure");
+                if (boolValue != null)
                 {
-                    dynamicVariable.setIgnoreFailure(Boolean.valueOf(value));
+                    dynamicVariable.setIgnoreFailure(boolValue);
                 }
 
                 IXMLElement filters = var.getFirstChildNamed("filters");
@@ -1129,12 +1170,12 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                     {
                         if (filterElement.getName().equals("regex"))
                         {
-                            String expression = filterElement.getAttribute("regexp");
-                            String selectexpr = filterElement.getAttribute("select");
-                            String replaceexpr = filterElement.getAttribute("replace");
-                            String defaultvalue = filterElement.getAttribute("defaultvalue");
-                            String scasesensitive = filterElement.getAttribute("casesensitive");
-                            String sglobal = filterElement.getAttribute("global");
+                            String expression = getAttribute(filterElement, "regexp");
+                            String selectexpr = getAttribute(filterElement, "select");
+                            String replaceexpr = getAttribute(filterElement, "replace");
+                            String defaultvalue = getAttribute(filterElement, "defaultvalue");
+                            String scasesensitive = getAttribute(filterElement, "casesensitive");
+                            String sglobal = getAttribute(filterElement, "global");
                             dynamicVariable.addFilter(
                                     new RegularExpressionFilter(
                                             expression, selectexpr,
@@ -1144,7 +1185,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                         }
                         else if (filterElement.getName().equals("location"))
                         {
-                            String basedir = filterElement.getAttribute("basedir");
+                            String basedir = getAttribute(filterElement, "basedir");
                             dynamicVariable.addFilter(new LocationFilter(basedir));
                         }
                     }
@@ -1155,8 +1196,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
                 }
                 catch (Exception e)
                 {
-                    parseError("Error in definition of dynamic variable " + name + ": "
-                                       + e.getMessage());
+                    parseError("Error in definition of dynamic variable " + name, e);
                 }
 
                 String conditionid = getAttribute(var, "condition");
@@ -1248,24 +1288,36 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
         return value;
     }
 
-    protected String getAttribute(IXMLElement element, String attribute)
-            throws InstallerException
+    /**
+     * Returns the value of the specified attribute on the specified element, or null if
+     * value is undefined or zero-length.
+     * 
+     * @param element the XML element to check
+     * @param attribute the name of the value to return
+     * @return the value of the specified attribute, or null if value is undefined, or 
+     * zero-length (i.e. the empty string)
+     * @throws InstallerException in the event of any parsing error
+     */
+    protected String getAttribute(IXMLElement element, String attribute) throws InstallerException
     {
         String value = element.getAttribute(attribute);
-        if (value != null)
+        if (value == null || value.equals(""))
+        {
+        	return null;
+        }
+        else
         {
             return substituteVariables(value);
         }
-        return value;
     }
     
     /**
      * Call getAttribute on an element, and return the boolean representation of the value.
-     * The value is considered to represent {@code true} if it is set to "true", "yes", or "on".
+     * The value is considered to represent {@code true} if it is set to "true" or "1".
      * 
      * @param element the element containing the attribute
      * @param attribute the name of the attribute to evaluate
-     * @return true, if the value is "true", "yes", or "on"; false if any other value (including
+     * @return true, if the value is "true" or "1"; false if any other value (including
      * the empty string); null if the attribute was not specified
      */
     protected Boolean getBooleanAttribute(IXMLElement element, String attribute)
@@ -1294,30 +1346,73 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
      */
     protected void parseError(String message) throws InstallerException
     {
-        throw new InstallerException(SPEC_FILE_NAME + ":" + message);
+    	parseError(null, message, null);
     }
 
     /**
-     * Create parse error with consistent messages. Includes file name and line # of parent. It is
-     * an error for 'parent' to be null.     *
+     * Create parse error with consistent messages. Includes file name.
      *
-     * @param parent  The element in which the error occured
+     * @param message Brief message explaining error
+     * @param exception Exception associated with the error (may be null)
+     */
+    protected void parseError(String message, Exception exception) throws InstallerException
+    {
+    	parseError(null, message, exception);
+    }
+    
+    /**
+     * Create parse error with consistent messages. Includes file name and line # of parent. It is
+     * an error for 'parent' to be null.
+     *
+     * @param parent  The element in which the error occurred (may be null
      * @param message Brief message explaining error
      */
     protected void parseError(IXMLElement parent, String message) throws InstallerException
     {
-        throw new InstallerException(SPEC_FILE_NAME + ":" + parent.getLineNr() + ": " + message);
+        parseError(parent, message, null);
+    }
+    
+    /**
+     * Create parse error with consistent messages. Includes file name and line # of parent. It is
+     * an error for 'parent' to be null.
+     *
+     * @param parent  The element in which the error occurred (may be null)
+     * @param message Brief message explaining error
+     * @param exception Exception associated with the error (may be null)
+     */
+    protected void parseError(IXMLElement parent, String message, Exception exception) throws InstallerException
+    {
+    	StringBuilder msg = new StringBuilder();
+    	msg.append(SPEC_FILE_NAME);
+    	if(parent != null)
+    	{
+        	msg.append(":");
+    		msg.append(parent.getLineNr());
+    	}
+		msg.append(": ");
+		msg.append(message);
+		
+        throw new InstallerException(msg.toString(), exception);
     }
 
     /**
      * Create a parse warning with consistent messages. Includes file name and line # of parent.     *
      *
-     * @param parent  The element in which the warning occured
+     * @param parent  The element in which the warning occurred (may be null)
      * @param message Warning message
      */
     protected void parseWarn(IXMLElement parent, String message)
     {
-        System.out.println("Warning: " + SPEC_FILE_NAME + ":" + parent.getLineNr() + ": " + message);
+    	StringBuilder msg = new StringBuilder();
+    	msg.append(SPEC_FILE_NAME);
+    	if(parent != null)
+    	{
+        	msg.append(":");
+    		msg.append(parent.getLineNr());
+    	}
+		msg.append(": ");
+		msg.append(message);
+        logger.log(Level.WARNING, msg.toString());
     }
 
     public enum ConfigType

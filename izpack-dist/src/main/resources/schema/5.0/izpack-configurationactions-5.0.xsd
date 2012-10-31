@@ -55,11 +55,12 @@
             </xs:element>
             <xs:element name="configurables"  minOccurs="0" maxOccurs="1">
                 <xs:complexType>
-                    <xs:sequence>
-                        <xs:element name="inifile" type="multiMapFileType" minOccurs="0" maxOccurs="unbounded"/>
-                        <xs:element name="property" type="multiMapFileType" minOccurs="0" maxOccurs="unbounded"/>
-                        <xs:element name="registry" type="registryType" minOccurs="0" maxOccurs="unbounded"/>
-                    </xs:sequence>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="inifile" type="stdMultiMapFileType"/>
+                        <xs:element name="propertyfile" type="stdMultiMapFileType"/>
+                        <xs:element name="registry" type="registryType"/>
+                        <xs:element name="xmlfile" type="xmlFileType"/>
+                    </xs:choice>
                 </xs:complexType>
             </xs:element>
         </xs:sequence>
@@ -74,27 +75,27 @@
         <xs:attribute name="tofile" type="xs:string" use="optional"/>
         <xs:attribute name="fromfile" type="xs:string" use="optional"/>
         <xs:attribute name="targetfile" type="xs:string" use="optional"/>
-        <xs:attribute name="todir" type="xs:string" use="required"/>
-        <xs:attribute name="cleanup" type="xs:string" use="optional"/>
-        <xs:attribute name="create" type="xs:boolean" use="optional"/>
-        <xs:attribute name="overwrite" type="xs:boolean" use="optional"/>
-        <xs:attribute name="failonerror" type="xs:boolean" use="optional"/>
-        <xs:attribute name="condition" type="xs:string" use="required"/>
-        <xs:attribute name="preservelastmodified" type="xs:boolean" use="optional"/>
-        <xs:attribute name="includeemptydirs" type="xs:boolean" use="optional"/>
-        <xs:attribute name="enablemultiplemappings" type="xs:boolean" use="optional"/>
+        <xs:attribute name="todir" type="xs:string" use="optional"/>
+        <xs:attribute name="cleanup" type="xs:boolean" use="optional" default="false"/>
+        <xs:attribute name="create" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="overwrite" type="xs:boolean" use="optional" default="false"/>
+        <xs:attribute name="failonerror" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="condition" type="xs:string" use="optional"/>
+        <xs:attribute name="preservelastmodified" type="xs:boolean" use="optional" default="false"/>
+        <xs:attribute name="includeemptydirs" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="enablemultiplemappings" type="xs:boolean" use="optional" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="multiMapFileType">
         <xs:complexContent>
 	        <xs:extension base="fileType">
-		        <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional"/>
-		        <xs:attribute name="keepOldValues" type="xs:boolean" use="optional"/>
-		        <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="keepOldKeys" type="xs:boolean" use="optional" default="true"/>
+		        <xs:attribute name="keepOldValues" type="xs:boolean" use="optional" default="true"/>
+		        <xs:attribute name="resolveExpressions" type="xs:boolean" use="optional" default="false"/>
 		        <xs:attribute name="escape" type="xs:boolean" use="optional"/>
 		        <xs:attribute name="escapeNewLine" type="xs:boolean" use="optional"/>
-		        <xs:attribute name="headerComment" type="xs:boolean" use="optional"/>
-		        <xs:attribute name="emptyLines" type="xs:boolean" use="optional"/>
+		        <xs:attribute name="headerComment" type="xs:boolean" use="optional" default="false"/>
+		        <xs:attribute name="emptyLines" type="xs:boolean" use="optional" default="true"/>
 		        <xs:attribute name="operator" type="xs:string" use="optional"/>
 	        </xs:extension>
         </xs:complexContent>
@@ -138,10 +139,13 @@
             <xs:element name="include" type="types:includeExcludeType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="exclude" type="types:includeExcludeType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="dir" type="xs:string" use="required"/>
-        <xs:attribute name="casesensitive" type="xs:boolean" use="optional"/>
-        <xs:attribute name="defaultexcludes" type="xs:boolean" use="optional"/>
-        <xs:attribute name="followsymlinks" type="xs:boolean" use="optional"/>
+        <xs:attribute name="file" type="xs:string" use="optional"/>
+        <xs:attribute name="dir" type="xs:string" use="optional"/>
+        <xs:attribute name="includes" type="xs:string" use="optional"/>
+        <xs:attribute name="excludes" type="xs:string" use="optional"/>
+        <xs:attribute name="casesensitive" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="defaultexcludes" type="xs:boolean" use="optional" default="true"/>
+        <xs:attribute name="followsymlinks" type="xs:boolean" use="optional" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="mapperType">
@@ -153,18 +157,17 @@
                     <xs:enumeration value="glob"/>
                     <xs:enumeration value="merge"/>
                     <xs:enumeration value="regexp"/>
-                    <xs:enumeration value="package"/>
-                    <xs:enumeration value="unpackage"/>
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
         <xs:attribute name="from" type="xs:string" use="required"/>
         <xs:attribute name="to" type="xs:string" use="required"/>
         <xs:attribute name="casesensitive" type="xs:boolean" use="optional"/>
+        <xs:attribute name="handledirsep" type="xs:boolean" use="optional"/>
     </xs:complexType>
 
     <xs:complexType name="multiMapEntryType">
-        <xs:attribute name="dataType" use="optional">
+        <xs:attribute name="dataType" use="optional" default="string">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="int"/>
@@ -173,7 +176,7 @@
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
-        <xs:attribute name="lookupType" use="optional">
+        <xs:attribute name="lookupType" use="optional" default="plain">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="plain"/>
@@ -181,7 +184,7 @@
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
-        <xs:attribute name="operation" use="optional">
+        <xs:attribute name="operation" use="optional" default="=">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="+"/>
