@@ -1,11 +1,12 @@
 /*
- * IzPack - Copyright 2001-2010 Julien Ponge, All Rights Reserved.
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
  *
  * Copyright 2005,2009 Ivan SZKIBA
  * Copyright 2010,2012 Rene Krell
+ * Copyright 2012 Daniel Abson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

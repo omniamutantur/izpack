@@ -1,11 +1,12 @@
 /*
- * IzPack - Copyright 2001-2010 Julien Ponge, All Rights Reserved.
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
  *
  * Copyright 2005,2009 Ivan SZKIBA
  * Copyright 2010,2011 Rene Krell
+ * Copyright 2012 Daniel Abson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +29,6 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import com.izforge.izpack.util.xmlmerge.AbstractXmlMergeException;
-import com.izforge.izpack.util.xmlmerge.ConfigurationException;
 import com.izforge.izpack.util.xmlmerge.XmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.ConfigurableXmlMerge;
 import com.izforge.izpack.util.xmlmerge.config.PropertyXPathConfigurer;
@@ -113,22 +112,7 @@ public class XmlFileConfigTask extends MergeableConfigFileTask
 	protected void doFileMergeOperation() throws Exception {
         // Create the XmlMerge instance and execute the merge
         XmlMerge xmlMerge;
-        try
-        {
-            xmlMerge = new ConfigurableXmlMerge(new PropertyXPathConfigurer(confProps));
-        } 
-        catch (ConfigurationException e)
-        {
-            throw new Exception(e);
-        }
-
-        try 
-        {
-            xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), tofile);
-        }
-        catch (AbstractXmlMergeException e)
-        {
-            throw new Exception(e);
-        }
+        xmlMerge = new ConfigurableXmlMerge(new PropertyXPathConfigurer(confProps));
+        xmlMerge.merge(filesToMerge.toArray(new File[filesToMerge.size()]), tofile);
 	}
 }

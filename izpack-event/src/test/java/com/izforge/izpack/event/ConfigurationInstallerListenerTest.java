@@ -1,3 +1,24 @@
+/*
+ * IzPack - Copyright 2001-2012 Julien Ponge, All Rights Reserved.
+ *
+ * http://izpack.org/
+ * http://izpack.codehaus.org/
+ *
+ * Copyright 2012 Daniel Abson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.izforge.izpack.event;
 
 import static org.junit.Assert.*;
@@ -10,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
-import org.jdom.Document;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -24,7 +44,6 @@ import com.izforge.izpack.api.data.InstallData;
 import com.izforge.izpack.api.data.Variables;
 import com.izforge.izpack.api.event.ProgressNotifiers;
 import com.izforge.izpack.api.exception.InstallerException;
-import com.izforge.izpack.api.resource.Messages;
 import com.izforge.izpack.api.resource.Resources;
 import com.izforge.izpack.api.substitutor.VariableSubstitutor;
 import com.izforge.izpack.core.data.DefaultVariables;
@@ -680,10 +699,13 @@ public class ConfigurationInstallerListenerTest {
 		}
 	}
 	
+	// TODO: implement
+	/*
 	@Test
 	public void testReadConfigurables() {
-		// TODO: fail("Not yet implemented"); 
+		fail("Not yet implemented"); 
 	}
+	*/
 	
 	public static void main (String[] args)
 	{

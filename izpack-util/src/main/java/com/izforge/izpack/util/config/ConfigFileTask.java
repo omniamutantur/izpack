@@ -6,6 +6,7 @@
  *
  * Copyright 2005,2009 Ivan SZKIBA
  * Copyright 2010,2011 Rene Krell
+ * Copyright 2012 Daniel Abson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +25,10 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.izforge.izpack.util.file.FileCopyTask;
@@ -38,6 +41,9 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
     protected boolean cleanup = false;
     protected boolean create = true;
     protected String headerComment;
+    
+    private List<File> cleanFiles = new ArrayList<File>();
+    private List<File> deleteFiles = new ArrayList<File>();
 
     /**
      * Set location of the configuration file to be updated; required.
@@ -116,9 +122,29 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
     		super.execute();
     	}
     	finally
-    	{
-            // clean up again, so this instance can be used a second time
+    	{ 
+    		// clean up again, so this instance can be used a second time  
     		srcFile = savedSrcFile;
+    		deleteFilesSilently(deleteFiles);
+    		if (cleanup)
+    		{
+    			deleteFilesSilently(cleanFiles);
+    		}
+    		cleanFiles.clear();
+    	}
+    }
+    
+    private void deleteFilesSilently(List<File> files)
+    {
+    	for (File file : files)
+    	{
+    		if (file != null && file.exists())
+    		{
+    			if(!file.delete())
+    			{
+    				logger.log(Level.SEVERE, "Failed to delete temporary or obsolete file " + file.getPath());
+    			}
+    		}
     	}
     }
     
@@ -151,9 +177,21 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
         	destFile = file;
         }
         if (srcFile != null && srcFile.equals(file))
-        {
-        	srcFile = null;
-        }
+    	{ //'from' and 'to' are the same file - no need to patch
+    		srcFile = null;
+    	}
+    	if (!file.exists())
+    	{ //allow patching to a file that may or may not exist
+    		file.createNewFile();
+    		if (!file.equals(destFile))
+    		{ //if dummy 'to' is not also the destination file, clean it up at the end
+    			deleteFiles.add(file);    				
+    		}
+    		else if (!create)
+    		{ //dummy 'to' is also the destination file, but create="false"
+    			throw new Exception("Not allowed to create new file " + file.getPath());
+    		}
+    	}
         super.validateAttributes();
     }
 
@@ -169,81 +207,105 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
             {
                 File patchFile = new File(entry.getKey());
                 String[] toFiles = entry.getValue();
+                boolean cleanPatchFile = true;
 
                 for (String toFile : toFiles)
                 {
                     logger.fine("Merge/copy " + patchFile + " into " + toFile);
 
-                    File to = new File(toFile);
-                    File parent = to.getParentFile();
-                    if (parent != null && !parent.exists())
+                    File to = null;
+                    File toTmp = null;
+                    File cleanFile = null;
+                    
+                    try
                     {
-                        parent.mkdirs();
+	                    to = new File(toFile);
+	                    File parent = to.getParentFile();
+	                    if (parent != null && !parent.exists())
+	                    {
+	                        parent.mkdirs();
+	                    }
+	                    if (!to.exists())
+	                    {
+	                    	if (create)
+	                    	{
+	                    		to.createNewFile();
+	                    	}
+	                    	else
+	                    	{
+	                    		throw new FileNotFoundException("Destination file " + to.getAbsolutePath()
+	                    				+ " does not exist, and is not allowed to be created.");
+	                    	}
+	                    }
+	                    
+	                    toTmp = File.createTempFile("tmp-", null, parent);
+                	
+	                	/*
+	                	 * TODO: Make single- and multi-file operations consistent.
+	                	 * If multi-file ops could have an alternative target 
+	                	 * (i.e. src/patch/target), the call to doFileOperation
+	                	 * would always be the same 
+	                	 */
+	                	if (srcFile == null)
+	                	{
+	                		//Single-file, two-way merge in multi-file task
+	                		//	patchFile is source, to is destination & target
+	                		//OR 
+	                		//Single-file task with no file to merge (implies
+	                		//extra, implementation-specific config is set)
+	                		//  patchFile is destination, to is target 
+	                		//  (may be the same)
+	                		doFileOperation(patchFile, to, toTmp);
+	                        cleanFile = patchFile;
+	                	}
+	                	else
+	                	{
+	                		//Single-file, two-way merge with optional 
+	                		//separate target file (single-file task)
+	                		//	srcFile is source, patchFile is destination,
+	                		//  toTmp will later overwrite target
+	                		doFileOperation(srcFile, patchFile, toTmp);
+	                        cleanFile = srcFile;
+	                	}
+                	
+                        getFileUtils().copyFile(toTmp, to, forceOverwrite, preserveLastModified);
+	                    deleteFiles.add(toTmp);
+	                    cleanFiles.add(cleanFile);
                     }
-                    if (!to.exists())
+                    catch (Exception e)
                     {
-                    	if (create)
+                        StringBuilder msg = new StringBuilder();
+                        msg.append("Failed to replace ");
+                        msg.append(to.getPath());
+                        msg.append(" with new config");
+                        if(toTmp != null && toTmp.exists())
+                        {
+                    		msg.append(" in temp file ");
+                    		msg.append(toTmp.getPath()); 
+                     		msg.append("; temp file will not be deleted");                        	
+                        }
+                        if(cleanup && cleanFile != null)
+                        {
+                        	msg.append("; source file ");
+                        	msg.append(cleanFile.getPath());
+                        	msg.append(" will not be cleaned up");
+                        }
+                        
+                    	if (failonerror)
                     	{
-                    		to.createNewFile();
+                            throw new Exception(msg.toString(), e);                    		
                     	}
                     	else
                     	{
-                    		throw new FileNotFoundException("Destination file " + to.getAbsolutePath()
-                    				+ " does not exist, and is not allowed to be created.");
+                    		logger.log(Level.SEVERE, msg.toString());
+                    		cleanPatchFile = false;
                     	}
-                    }
-
-                    File toTmp = File.createTempFile("tmp-", null, parent);
-
-                	File cleanFile;
-                	
-                	/*
-                	 * TODO: Make single- and multi-file operations consistent
-                	 * If multi-file ops could have an alternative target 
-                	 * (i.e. src/patch/target), the call to doFileOperation
-                	 * would always be the same 
-                	 */
-                	if (srcFile == null)
-                	{
-                		//Single-file, two-way merge in multi-file task
-                		//	patchFile is source, to is destination & target
-                		//OR 
-                		//Single-file task with no file to merge (implies
-                		//extra, implementation-specific config is set)
-                		//  patchFile is destination, to is target 
-                		//  (may be the same)
-                		doFileOperation(patchFile, to, toTmp);
-                        cleanFile = patchFile;
-                	}
-                	else
-                	{
-                		//Single-file, two-way merge with optional 
-                		//separate target file (single-file task)
-                		//	srcFile is source, patchFile is destination,
-                		//  toTmp will later overwrite target
-                		doFileOperation(srcFile, patchFile, toTmp);
-                        getFileUtils().copyFile(toTmp, to, forceOverwrite, preserveLastModified);
-                        cleanFile = srcFile;
-                	}
-                	
-                    try
-                    {
-                        getFileUtils().copyFile(toTmp, to, forceOverwrite, preserveLastModified);
-                        if (cleanup && cleanFile != null && cleanFile.exists())
-                        {
-                            if (!cleanFile.delete())
-                            {
-                                logger.warning("File " + cleanFile + " could not be cleaned up");
-                            }
-                        }
-                    }
-                    catch (IOException ioe)
-                    {
-                        String msg = "Failed to replace " + toFile + " with new config in temp file " + toTmp + 
-                        		" - temp file will not be deleted";
-                        throw new Exception(msg, ioe);
-                    }
-                    toTmp.delete();
+                    }                    
+                }
+                
+                if(!cleanPatchFile)
+                { //if at least one merge/copy in a multi-file operation failed, don't delete the original file
+                	cleanFiles.remove(patchFile);
                 }
             }
         }
