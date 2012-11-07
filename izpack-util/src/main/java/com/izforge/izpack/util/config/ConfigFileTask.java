@@ -172,26 +172,29 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
     	{
     		throw new Exception("Only one of overwrite and create can be false.");
     	}
-        if (destFile == null)
-        {
-        	destFile = file;
-        }
         if (srcFile != null && srcFile.equals(file))
     	{ //'from' and 'to' are the same file - no need to patch
     		srcFile = null;
     	}
-    	if (!file.exists())
-    	{ //allow patching to a file that may or may not exist
-    		file.createNewFile();
-    		if (!file.equals(destFile))
-    		{ //if dummy 'to' is not also the destination file, clean it up at the end
-    			deleteFiles.add(file);    				
-    		}
-    		else if (!create)
-    		{ //dummy 'to' is also the destination file, but create="false"
-    			throw new Exception("Not allowed to create new file " + file.getPath());
-    		}
-    	}
+        if (file != null)
+        {
+	        if (destFile == null)
+	        {
+	        	destFile = file;
+	        }
+	    	if (!file.exists())
+	    	{ //allow patching to a file that may or may not exist
+	    		file.createNewFile();
+	    		if (!file.equals(destFile))
+	    		{ //if dummy 'to' is not also the destination file, clean it up at the end
+	    			deleteFiles.add(file);    				
+	    		}
+	    		else if (!create)
+	    		{ //dummy 'to' is also the destination file, but create="false"
+	    			throw new Exception("Not allowed to create new file " + file.getPath());
+	    		}
+	    	}
+        }
         super.validateAttributes();
     }
 

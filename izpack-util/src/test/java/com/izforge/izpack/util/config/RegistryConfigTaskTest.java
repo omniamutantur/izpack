@@ -131,7 +131,7 @@ public class RegistryConfigTaskTest {
 		task.setTargetFile(null);
 		task.setToDir(fooFile);
 		task.addFileSet(new FileSet());
-		tryValidation(true, "Unexpected validation fail (only toDir set)");
+		tryValidation(true, "Unexpected validation fail (with toDir/fileset)");
 
 		task = new RegistryConfigTask(); 
 		

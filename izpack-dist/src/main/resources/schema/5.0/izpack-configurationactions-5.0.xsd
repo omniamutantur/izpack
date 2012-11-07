@@ -64,7 +64,16 @@
                 </xs:complexType>
             </xs:element>
         </xs:sequence>
-        <xs:attribute name="order" type="xs:string" use="required"/>
+        <xs:attribute name="order" type="xs:string" use="required">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="beforepacks"/>
+                    <xs:enumeration value="beforepack"/>
+                    <xs:enumeration value="afterpacks"/>
+                    <xs:enumeration value="afterpack"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
     </xs:complexType>
     
     <xs:complexType name="fileType">

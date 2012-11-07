@@ -51,6 +51,8 @@ public class MultiMapConfigEntry implements Cloneable
     protected static final String DEFAULT_STRING_VALUE = "";
     
     protected static final Unit DEFAULT_UNIT_VALUE = Unit.DAY;
+    
+    protected static final String DEFAULT_DATE_PATTERN = "yyyy/MM/dd HH:mm";
 
     protected String section = null;
 
@@ -290,11 +292,7 @@ public class MultiMapConfigEntry implements Cloneable
     {
         Calendar currentValue = Calendar.getInstance();
 
-        if (pattern == null)
-        {
-            pattern = "yyyy/MM/dd HH:mm";
-        }
-        DateFormat fmt = new SimpleDateFormat(pattern);
+        DateFormat fmt = new SimpleDateFormat( (pattern == null ? DEFAULT_DATE_PATTERN : pattern) );
 
         String currentStringValue = getCurrentValue(oldValue);
         if (currentStringValue == null)
@@ -460,9 +458,9 @@ public class MultiMapConfigEntry implements Cloneable
         {
         	throw new Exception("at least one of \"key\" or \"section\" must be specified");
     	}
-        if (value == null && defaultValue == null) 
+        if (value == null && defaultValue == null && operation == Operation.SET) 
         { 
-        	throw new Exception("\"value\" and/or \"default\" attribute must be specified (key: " + key+ ")");
+        	throw new Exception("\"value\" and/or \"default\" attribute must be specified (key: " + key+ "; operation: " + operation + ")");
     	}
         if (type == Type.STRING && operation == Operation.DECREMENT)
         {
