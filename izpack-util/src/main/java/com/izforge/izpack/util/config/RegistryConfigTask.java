@@ -25,6 +25,7 @@ package com.izforge.izpack.util.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.izforge.izpack.util.config.base.MultiMap;
@@ -114,7 +115,7 @@ public class RegistryConfigTask extends IniFileConfigTask
     @Override
     public void execute() throws Exception
     {
-    	validateRegAttributes();
+   		validateRegAttributes();
     	
 		if (toKey == null)
 		{
@@ -122,15 +123,30 @@ public class RegistryConfigTask extends IniFileConfigTask
 		}
 		else
 		{
-	        Reg key = readFromRegistry(srcKey, false);
-	        Reg destKey = readFromRegistry(toKey, create);
-	        patch(key, destKey);
-			for (MultiMapConfigEntry entry : entries)
+			try
 			{
-				processEntry(entry, key, destKey);
+		        Reg key = readFromRegistry(srcKey, false);
+		        Reg destKey = readFromRegistry(toKey, create);
+		        patch(key, destKey);
+				for (MultiMapConfigEntry entry : entries)
+				{
+					processEntry(entry, key, destKey);
+				}
+		        writeToRegistry(destKey);
 			}
-	        writeToRegistry(destKey);
-		}
+	    	catch (Exception e)
+	    	{
+	    		String errMsg = "Failed to update Windows registry";
+	    		if (failonerror)
+	    		{
+	    			throw new Exception(errMsg, e);
+	    		}
+	    		else
+	    		{
+	    			logger.log(Level.SEVERE, errMsg, e);
+	    		}
+	    	}
+    	}
     }
     
     @Override

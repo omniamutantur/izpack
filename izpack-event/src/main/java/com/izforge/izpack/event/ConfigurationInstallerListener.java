@@ -70,7 +70,6 @@ import com.izforge.izpack.util.config.IniFileConfigTask;
 import com.izforge.izpack.util.config.PropertyFileConfigTask;
 import com.izforge.izpack.util.config.XmlFileConfigTask;
 import com.izforge.izpack.util.file.FileNameMapper;
-import com.izforge.izpack.util.file.GlobPatternMapper;
 import com.izforge.izpack.util.file.types.FileSet;
 import com.izforge.izpack.util.file.types.Mapper;
 import com.izforge.izpack.util.helper.SpecHelper;
