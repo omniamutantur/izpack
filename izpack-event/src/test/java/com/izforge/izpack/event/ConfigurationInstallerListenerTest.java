@@ -368,46 +368,46 @@ public class ConfigurationInstallerListenerTest {
 
 		/* Test correct parsing of from/to attributes by expected behaviour */  
 		//test identity
-		mappersSpecs.add(buildMapperXml("identity", "qux\\foo*.bar", "bar*.foo", null, null));
+		mappersSpecs.add(buildMapperXml("identity", "qux" + File.separator + "foo*.bar", "bar*.foo", null, null));
 		mappers = listener.readMappers(mappersSpecs);
 		assertNotNull(mappers);
-		results = mappers.get(0).mapFileName("qux\\foo-baz.bar");
+		results = mappers.get(0).mapFileName("qux" + File.separator + "foo-baz.bar");
 		assertNotNull(results);
 		assertEquals(1, results.length);
-		assertEquals("qux\\foo-baz.bar", results[0]);
+		assertEquals("qux" + File.separator + "foo-baz.bar", results[0]);
 		//test flatten
-		mappersSpecs.set(0, buildMapperXml("flatten", "qux\\foo*.bar", "bar*.foo", null, null));
+		mappersSpecs.set(0, buildMapperXml("flatten", "qux" + File.separator + "foo*.bar", "bar*.foo", null, null));
 		mappers = listener.readMappers(mappersSpecs);
 		assertNotNull(mappers);
-		results = mappers.get(0).mapFileName("qux\\foo-baz.bar");
+		results = mappers.get(0).mapFileName("qux" + File.separator + "foo-baz.bar");
 		assertNotNull(results);
 		assertEquals(1, results.length);
 		assertEquals("foo-baz.bar", results[0]);
 		//test merge
-		mappersSpecs.set(0, buildMapperXml("merge", "qux\\foo*.bar", "bar*.foo", null, null));
+		mappersSpecs.set(0, buildMapperXml("merge", "qux" + File.separator + "foo*.bar", "bar*.foo", null, null));
 		mappers = listener.readMappers(mappersSpecs);
 		assertNotNull(mappers);
-		results = mappers.get(0).mapFileName("qux\\foo-baz.bar");
+		results = mappers.get(0).mapFileName("qux" + File.separator + "foo-baz.bar");
 		assertNotNull(results);
 		assertEquals(1, results.length);
 		assertEquals("bar*.foo", results[0]);
-		results = mappers.get(0).mapFileName("quux\\baz-bar.foo");
+		results = mappers.get(0).mapFileName("quux" + File.separator + "baz-bar.foo");
 		assertNotNull(results);
 		assertEquals(1, results.length);
 		assertEquals("bar*.foo", results[0]);
 		//test glob
-		mappersSpecs.set(0, buildMapperXml("glob", "qux\\foo*.bar", "bar*.foo", null, null));
+		mappersSpecs.set(0, buildMapperXml("glob", "qux" + File.separator + "foo*.bar", "bar*.foo", null, null));
 		mappers = listener.readMappers(mappersSpecs);
 		assertNotNull(mappers);
-		results = mappers.get(0).mapFileName("qux\\foo-baz.bar");
+		results = mappers.get(0).mapFileName("qux" + File.separator + "foo-baz.bar");
 		assertNotNull(results);
 		assertEquals(1, results.length);
 		assertEquals("bar-baz.foo", results[0]);
 		//test regexp
-		mappersSpecs.set(0, buildMapperXml("regexp", "qux\\\\foo(.*)\\.bar", "bar\\1\\.foo", null, null));
+		mappersSpecs.set(0, buildMapperXml("regexp", "qux[\\\\/]foo(.*)\\.bar", "bar\\1\\.foo", null, null));
 		mappers = listener.readMappers(mappersSpecs);
 		assertNotNull(mappers);
-		results = mappers.get(0).mapFileName("qux\\foo-baz.bar");
+		results = mappers.get(0).mapFileName("qux" + File.separator + "foo-baz.bar");
 		assertNotNull(results);
 		assertEquals(1, results.length);
 		assertEquals("bar-baz.foo", results[0]);
