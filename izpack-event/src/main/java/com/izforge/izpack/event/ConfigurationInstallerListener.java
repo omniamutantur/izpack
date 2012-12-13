@@ -538,7 +538,7 @@ public class ConfigurationInstallerListener extends AbstractProgressInstallerLis
             throws InstallerException
     {
     	// read common file attributes
-        task.setToFile(FileUtil.getAbsoluteFile(requireAttribute(config, SPEC_TOFILE), idata.getInstallPath()));
+        task.setToFile(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_TOFILE), idata.getInstallPath()));
         task.setSrcFile(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_FROMFILE), idata.getInstallPath()));
         task.setTargetFile(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_TARGETFILE), idata.getInstallPath()));
         task.setToDir(FileUtil.getAbsoluteFile(getAttribute(config, SPEC_TODIR), idata.getInstallPath()));
