@@ -46,13 +46,13 @@ import com.izforge.izpack.test.util.TestConsole;
 
 
 /**
- * Tests the {@link UserInputPanelConsole}.
+ * Tests the {@link UserInputConsolePanel}.
  *
  * @author Tim Anderson
  */
 @RunWith(PicoRunner.class)
 @Container(TestConsolePanelContainer.class)
-public class UserInputPanelConsoleTest
+public class UserInputConsolePanelTest
 {
 
     /**
@@ -82,7 +82,7 @@ public class UserInputPanelConsoleTest
 
 
     /**
-     * Constructs an {@code UserInputPanelConsoleHelperTest}.
+     * Constructs an {@code UserInputConsolePanelHelperTest}.
      *
      * @param installData the installation data
      * @param factory     the factory for creating panels
@@ -90,7 +90,7 @@ public class UserInputPanelConsoleTest
      * @param console     the console
      * @param container   the container
      */
-    public UserInputPanelConsoleTest(InstallData installData, ObjectFactory factory, ResourceManager resources,
+    public UserInputConsolePanelTest(InstallData installData, ObjectFactory factory, ResourceManager resources,
                                      TestConsole console, TestConsolePanelContainer container)
     {
         this.installData = installData;
@@ -170,10 +170,30 @@ public class UserInputPanelConsoleTest
         assertTrue(panels.next());
 
         assertEquals("myhost", installData.getVariable("address"));
-        assertEquals("${address}", installData.getVariable("dynamicMasterAddress"));
+        assertEquals("myhost", installData.getVariable("dynamicMasterAddress"));
 
         assertTrue(panels.isValid());
-        assertEquals("myhost", installData.getVariable("dynamicMasterAddress"));
+    }
+
+    /**
+     * Verifies that if input is invalid, the panel is redisplayed.
+     */
+    @Test
+    public void testValidation()
+    {
+        // Set the base path in order to pick up com/izforge/izpack/panels/userinput/rule/userInputSpec.xml
+        resources.setResourceBasePath("/com/izforge/izpack/panels/userinput/rule/");
+
+        ConsolePanels panels = createPanels(UserInputPanel.class, "ruleinput");
+
+        console.addScript("rule1", "A.B.C.D");      // invalid host name
+        console.addScript("re-display", "1");
+        console.addScript("re-enter", "127.0.0.1"); // valid host name
+        console.addScript("continue", "1");
+
+        assertTrue(panels.next());
+
+        assertEquals("127.0.0.1", installData.getVariable("rule1"));
     }
 
     /**

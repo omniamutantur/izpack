@@ -19,24 +19,28 @@
  * limitations under the License.
  */
 
-package com.izforge.izpack.panels.licence;
+package com.izforge.izpack.panels.htmllicence;
 
 import com.izforge.izpack.api.resource.Resources;
-
+import com.izforge.izpack.installer.panel.PanelView;
+import com.izforge.izpack.panels.licence.AbstractLicenceConsolePanel;
+import com.izforge.izpack.util.Console;
 
 /**
- * Console based License Panel.
+ * HTML Licence Panel console helper
  */
-public class LicencePanelConsoleHelper extends AbstractLicensePanelConsole
+public class HTMLLicenceConsolePanel extends AbstractLicenceConsolePanel
 {
+
     /**
-     * Constructs a <tt>LicencePanelConsoleHelper</tt>.
+     * Constructs an <tt>HTMLLicenceConsolePanel</tt>.
      *
+     * @param panel     the parent panel/view. May be {@code null}
      * @param resources the resources
      */
-    public LicencePanelConsoleHelper(Resources resources)
+    public HTMLLicenceConsolePanel(PanelView<Console> panel, Resources resources)
     {
-        super(resources);
+        super(panel, resources);
     }
 
     /**
@@ -47,7 +51,12 @@ public class LicencePanelConsoleHelper extends AbstractLicensePanelConsole
     @Override
     protected String getText()
     {
-        return getText("LicencePanel.licence");
+        String text = getText("HTMLLicencePanel.licence");
+        if (text != null)
+        {
+            text = removeHTML(text);
+        }
+        return text;
     }
 
 }

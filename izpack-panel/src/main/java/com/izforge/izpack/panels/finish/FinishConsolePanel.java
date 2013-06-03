@@ -24,27 +24,37 @@ package com.izforge.izpack.panels.finish;
 import java.util.Properties;
 
 import com.izforge.izpack.api.data.InstallData;
-import com.izforge.izpack.installer.console.PanelConsoleHelper;
+import com.izforge.izpack.installer.console.AbstractConsolePanel;
+import com.izforge.izpack.installer.panel.PanelView;
 import com.izforge.izpack.util.Console;
 
 /**
- * Finish Panel console helper
+ * Console implementation of the {@link FinishPanel}.
  *
  * @author Mounir el hajj
  */
-public class FinishPanelConsoleHelper extends PanelConsoleHelper
+public class FinishConsolePanel extends AbstractConsolePanel
 {
 
     /**
-     * Runs the panel using the supplied properties.
+     * Constructs an {@code FinishConsolePanel}.
      *
+     * @param panel the parent panel/view. May be {@code null}
+     */
+    public FinishConsolePanel(PanelView<Console> panel)
+    {
+        super(panel);
+    }
+
+    /**
+     * Runs the panel using the supplied properties.
      *
      * @param installData the installation data
      * @param properties  the properties
      * @return <tt>true</tt>
      */
     @Override
-    public boolean runConsoleFromProperties(InstallData installData, Properties properties)
+    public boolean run(InstallData installData, Properties properties)
     {
         return true;
     }
@@ -52,13 +62,12 @@ public class FinishPanelConsoleHelper extends PanelConsoleHelper
     /**
      * Runs the panel using the specified console.
      *
-     *
      * @param installData the installation data
      * @param console     the console
      * @return <tt>true</tt>
      */
     @Override
-    public boolean runConsole(InstallData installData, Console console)
+    public boolean run(InstallData installData, Console console)
     {
         if (installData.isInstallSuccess())
         {

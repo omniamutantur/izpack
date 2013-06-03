@@ -3,7 +3,7 @@
  *
  * http://izpack.org/
  * http://izpack.codehaus.org/
- * 
+ *
  * Copyright 2013 Tim Anderson
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,16 +19,24 @@
  * limitations under the License.
  */
 
-package com.izforge.izpack.panels.simplefinish;
+package com.izforge.izpack.panels.htmlhello;
 
-import com.izforge.izpack.panels.finish.FinishPanelConsoleHelper;
+import com.izforge.izpack.api.resource.Resources;
+import com.izforge.izpack.installer.panel.PanelView;
+import com.izforge.izpack.panels.htmlinfo.HTMLInfoConsolePanel;
+import com.izforge.izpack.util.Console;
 
 /**
- * Console implementation of {@link SimpleFinishPanel}.
+ * Console implementation of {@link HTMLHelloPanel}.
  *
  * @author Tim Anderson
  */
-public class SimpleFinishPanelConsole extends FinishPanelConsoleHelper
+public class HTMLHelloConsolePanel extends HTMLInfoConsolePanel
 {
+
+    public HTMLHelloConsolePanel(Resources resources, PanelView<Console> panel)
+    {
+        super(panel, resources, "HTMLHelloPanel");
+    }
 
 }

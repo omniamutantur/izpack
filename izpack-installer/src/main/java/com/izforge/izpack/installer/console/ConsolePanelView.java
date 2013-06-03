@@ -28,17 +28,17 @@ import com.izforge.izpack.api.factory.ObjectFactory;
 import com.izforge.izpack.api.handler.AbstractUIHandler;
 import com.izforge.izpack.core.handler.ConsolePrompt;
 import com.izforge.izpack.core.handler.PromptUIHandler;
-import com.izforge.izpack.installer.panel.PanelView;
+import com.izforge.izpack.installer.panel.AbstractPanelView;
 import com.izforge.izpack.installer.util.PanelHelper;
 import com.izforge.izpack.util.Console;
 
 
 /**
- * Implementation of {@link PanelView} for {@link PanelConsole}s.
+ * Implementation of {@link com.izforge.izpack.installer.panel.AbstractPanelView} for {@link ConsolePanel}s.
  *
  * @author Tim Anderson
  */
-public class ConsolePanelView extends PanelView<PanelConsole>
+public class ConsolePanelView extends AbstractPanelView<ConsolePanel>
 {
 
     /**
@@ -61,17 +61,17 @@ public class ConsolePanelView extends PanelView<PanelConsole>
      */
     public ConsolePanelView(Panel panel, ObjectFactory factory, InstallData installData, Console console)
     {
-        super(panel, PanelConsole.class, factory, installData);
+        super(panel, ConsolePanel.class, factory, installData);
         this.console = console;
         this.prompt = new ConsolePrompt(console, installData.getMessages());
     }
 
     /**
-     * Returns the PanelConsole class corresponding to the panel's class name
+     * Returns the ConsolePanel class corresponding to the panel's class name
      *
-     * @return the corresponding {@link PanelConsole} implementation class, or {@code null} if none is found
+     * @return the corresponding {@link ConsolePanel} implementation class, or {@code null} if none is found
      */
-    public Class<PanelConsole> getViewClass()
+    public Class<ConsolePanel> getViewClass()
     {
         Panel panel = getPanel();
         return PanelHelper.getConsolePanel(panel.getClassName());
@@ -85,14 +85,14 @@ public class ConsolePanelView extends PanelView<PanelConsole>
      * @return the new view
      */
     @Override
-    protected PanelConsole createView(Panel panel, Class<PanelConsole> viewClass)
+    protected ConsolePanel createView(Panel panel, Class<ConsolePanel> viewClass)
     {
-        Class<PanelConsole> impl = getViewClass();
+        Class<ConsolePanel> impl = getViewClass();
         if (impl == null)
         {
             throw new IzPackException("Console implementation not found for panel: " + panel.getClassName());
         }
-        return getFactory().create(impl, panel);
+        return getFactory().create(impl, panel, this);
     }
 
     /**

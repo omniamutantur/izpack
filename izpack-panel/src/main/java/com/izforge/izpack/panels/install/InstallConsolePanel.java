@@ -25,8 +25,8 @@ import java.util.Properties;
 
 import com.izforge.izpack.api.data.InstallData;
 import com.izforge.izpack.api.event.ProgressListener;
-import com.izforge.izpack.installer.console.PanelConsole;
-import com.izforge.izpack.installer.console.PanelConsoleHelper;
+import com.izforge.izpack.installer.console.AbstractConsolePanel;
+import com.izforge.izpack.installer.panel.PanelView;
 import com.izforge.izpack.installer.unpacker.IUnpacker;
 import com.izforge.izpack.util.Console;
 
@@ -35,7 +35,7 @@ import com.izforge.izpack.util.Console;
  *
  * @author Mounir el hajj
  */
-public class InstallPanelConsoleHelper extends PanelConsoleHelper implements PanelConsole, ProgressListener
+public class InstallConsolePanel extends AbstractConsolePanel implements ProgressListener
 {
     /**
      * The unpacker.
@@ -44,14 +44,15 @@ public class InstallPanelConsoleHelper extends PanelConsoleHelper implements Pan
 
     private int noOfPacks = 0;
 
-    public InstallPanelConsoleHelper(IUnpacker unpacker)
+    public InstallConsolePanel(IUnpacker unpacker, PanelView<Console> panel)
     {
+        super(panel);
         this.unpacker = unpacker;
     }
 
-    public boolean runConsoleFromProperties(InstallData installData, Properties properties)
+    public boolean run(InstallData installData, Properties properties)
     {
-        return runConsole(installData);
+        return run();
     }
 
     /**
@@ -62,11 +63,9 @@ public class InstallPanelConsoleHelper extends PanelConsoleHelper implements Pan
      * @return <tt>true</tt> if the panel ran successfully, otherwise <tt>false</tt>
      */
     @Override
-    public boolean runConsole(InstallData installData, Console console)
+    public boolean run(InstallData installData, Console console)
     {
-        unpacker.setProgressListener(this);
-        unpacker.run();
-        return unpacker.getResult();
+        return run();
     }
 
     @Override
@@ -130,4 +129,12 @@ public class InstallPanelConsoleHelper extends PanelConsoleHelper implements Pan
     {
         // no-op
     }
+
+    private boolean run()
+    {
+        unpacker.setProgressListener(this);
+        unpacker.run();
+        return unpacker.getResult();
+    }
+
 }

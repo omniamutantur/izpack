@@ -1,17 +1,17 @@
 /*
- * IzPack - Copyright 2001-2008 Julien Ponge, All Rights Reserved.
- * 
+ * IzPack - Copyright 2001-2013 Julien Ponge, All Rights Reserved.
+ *
  * http://izpack.org/
  * http://izpack.codehaus.org/
- * 
- * Copyright 2003 Jonathan Halliday
- * 
+ *
+ * Copyright 2013 Tim Anderson
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- *     
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,47 +19,37 @@
  * limitations under the License.
  */
 
-package com.izforge.izpack.installer.console;
+package com.izforge.izpack.panels.defaulttarget;
 
 import java.io.PrintWriter;
 import java.util.Properties;
 
 import com.izforge.izpack.api.data.InstallData;
+import com.izforge.izpack.installer.console.AbstractConsolePanel;
 import com.izforge.izpack.installer.panel.PanelView;
+import com.izforge.izpack.panels.target.TargetPanelHelper;
 import com.izforge.izpack.util.Console;
 
 /**
- * Abstract class implementing basic functions needed by all panel console helpers.
+ * Console implementation of the {@link DefaultTargetPanel}.
  *
- * @author Mounir El Hajj
- * @deprecated use {@link AbstractConsolePanel}
+ * @author Tim Anderson
  */
-@Deprecated
-abstract public class PanelConsoleHelper extends AbstractConsolePanel implements PanelConsole
+public class DefaultTargetConsolePanel extends AbstractConsolePanel
 {
 
     /**
-     * Constructs a {@code PanelConsoleHelper}.
-     */
-    public PanelConsoleHelper()
-    {
-        this(null);
-    }
-
-    /**
-     * Constructs a {@code PanelConsoleHelper}.
+     * Constructs an {@code DefaultTargetConsolePanel}.
      *
      * @param panel the parent panel/view. May be {@code null}
      */
-    public PanelConsoleHelper(PanelView<Console> panel)
+    public DefaultTargetConsolePanel(PanelView<Console> panel)
     {
         super(panel);
     }
 
     /**
      * Generates a properties file for each input field or variable.
-     * <p/>
-     * This implementation is a no-op.
      *
      * @param installData the installation data
      * @param printWriter the properties file to write to
@@ -68,7 +58,8 @@ abstract public class PanelConsoleHelper extends AbstractConsolePanel implements
     @Override
     public boolean generateProperties(InstallData installData, PrintWriter printWriter)
     {
-        return runGeneratePropertiesFile(installData, printWriter);
+        printWriter.println(InstallData.INSTALL_PATH + "=");
+        return true;
     }
 
     /**
@@ -81,7 +72,10 @@ abstract public class PanelConsoleHelper extends AbstractConsolePanel implements
     @Override
     public boolean run(InstallData installData, Properties properties)
     {
-        return runConsoleFromProperties(installData, properties);
+        String path = properties.getProperty(InstallData.INSTALL_PATH);
+        path = installData.getVariables().replace(path);
+        installData.setInstallPath(path);
+        return true;
     }
 
     /**
@@ -94,33 +88,8 @@ abstract public class PanelConsoleHelper extends AbstractConsolePanel implements
     @Override
     public boolean run(InstallData installData, Console console)
     {
-        return runConsole(installData, console);
+        String path = TargetPanelHelper.getPath(installData);
+        installData.setInstallPath(path);
+        return true;
     }
-
-    /**
-     * Runs the panel in interactive console mode.
-     *
-     * @param installData the installation data
-     * @deprecated use {@link #run(InstallData, Console)}
-     */
-    @Override
-    @Deprecated
-    public boolean runConsole(InstallData installData)
-    {
-        return runConsole(installData, new Console());
-    }
-
-    /**
-     * Prompts to end the console panel.
-     *
-     * @return <tt>1</tt> to continue, <tt>2</tt> to quit, <tt>3</tt> to redisplay
-     * @see {@link #promptEndPanel(InstallData, Console)}
-     * @deprecated
-     */
-    @Deprecated
-    public int askEndOfConsolePanel()
-    {
-        return new Console().prompt("press 1 to continue, 2 to quit, 3 to redisplay", 1, 3, 2);
-    }
-
 }

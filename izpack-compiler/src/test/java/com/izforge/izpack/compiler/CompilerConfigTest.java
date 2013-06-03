@@ -87,9 +87,10 @@ public class CompilerConfigTest
         mergeManager.addResourceToMerge(pathResolver.getPanelMerge("CheckedHelloPanel"));
 
         assertThat(mergeManager, MergeMatcher.isMergeableContainingFiles(
-                "com/izforge/izpack/panels/hello/HelloPanelConsoleHelper.class",
+                "com/izforge/izpack/panels/hello/HelloConsolePanel.class",
                 "com/izforge/izpack/panels/hello/HelloPanel.class",
-                "com/izforge/izpack/panels/checkedhello/CheckedHelloPanel.class"));
+                "com/izforge/izpack/panels/checkedhello/CheckedHelloPanel.class",
+                "com/izforge/izpack/panels/checkedhello/CheckedHelloConsolePanel.class"));
     }
 
     @Test
@@ -128,5 +129,19 @@ public class CompilerConfigTest
                 Assert.fail("Missing imports : " + stringBuilder);
             }
         }
+    }
+
+    /**
+     * Verifies that the panelDependencies.properties file is used to resolve panel dependencies.
+     */
+    @Test
+    public void testResolvePanelDependencies()
+    {
+        mergeManager.addResourceToMerge(pathResolver.getPanelMerge("DefaultTargetPanel"));
+
+        assertThat(mergeManager, MergeMatcher.isMergeableContainingFiles(
+                "com/izforge/izpack/panels/defaulttarget/DefaultTargetPanel.class",
+                "com/izforge/izpack/panels/defaulttarget/DefaultTargetConsolePanel.class",
+                "com/izforge/izpack/panels/target/TargetPanelHelper.class"));
     }
 }
