@@ -21,6 +21,7 @@
 
 package com.izforge.izpack.panels.userinput.field;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -182,7 +183,11 @@ public abstract class Field
      */
     public String getDefaultValue()
     {
-        return set;
+        if (set != null)
+        {
+            return installData.getVariables().replace(set);
+        }
+        return null;
     }
 
     /**
@@ -220,6 +225,7 @@ public abstract class Field
      */
     public void setValue(String value)
     {
+        value = process(value);
         if (logger.isLoggable(Level.FINE))
         {
             logger.fine("Field setting variable=" + variable + " to value=" + value);
@@ -246,6 +252,18 @@ public abstract class Field
     public ValidationStatus validate(String... values)
     {
         return validate(new ValuesProcessingClient(values));
+    }
+
+    /**
+     * Validates values using any validators associated with the field.
+     *
+     * @param format how the values should be formatted into one text
+     * @param values the values to validate
+     * @return the status of the validation
+     */
+    public ValidationStatus validate(MessageFormat format, String... values)
+    {
+        return validate(new ValuesProcessingClient(format, values));
     }
 
     /**
@@ -356,9 +374,9 @@ public abstract class Field
     }
 
     /**
-     * Returns the value of the 'set' attribute.
+     * Returns the raw value of the 'set' attribute.
      *
-     * @return the value of the 'set' attribute
+     * @return the raw value of the 'set' attribute
      */
     protected String getSet()
     {

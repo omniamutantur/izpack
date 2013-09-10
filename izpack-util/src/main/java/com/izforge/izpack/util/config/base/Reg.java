@@ -187,6 +187,25 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
     {
         load(input.toURI().toURL());
     }
+    
+    /** TODO: CHECK ON CALLERS TO DECIDE WHETHER OR NOT TO USE THIS NEW CODE
+    public void read(String registryKey) throws IOException
+    {
+        File tmp = createTempFile();
+
+        try
+        {
+            regExport(registryKey, tmp);
+            if( tmp.exists() ) {
+            	load(tmp);
+            } // otherwise, it didn't find the key
+        }
+        finally
+        {
+            tmp.delete();
+        }
+    }
+	*/
 
     public void read(String registryKey, boolean create) throws IOException
     {
@@ -247,7 +266,7 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
 
     public void write() throws IOException
     {
-        File tmp = createTempFilename();
+        File tmp = createTempFile();
 
         try
         {
@@ -322,22 +341,24 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         }
     }
 
-    private File createTempFilename() throws IOException
+    private File createTempFile() throws IOException
     {
         File ret = File.createTempFile(TMP_PREFIX, DEFAULT_SUFFIX);
-        ret.delete(); //Windows reg.exe errors out if file already exists
+        ret.deleteOnExit();
         return ret;
     }
 
     private void regExport(String registryKey, File file) throws IOException
     {
         requireWindows();
+        file.delete();		// reg export hangs if the file already exists
         exec(new String[] { "cmd", "/c", "reg", "export", registryKey, file.getAbsolutePath() });
     }
 
     private void regImport(File file) throws IOException
     {
         requireWindows();
+        file.delete();		// reg export hangs if the file already exists
         exec(new String[] { "cmd", "/c", "reg", "import", file.getAbsolutePath() });
     }
 
