@@ -23,16 +23,25 @@ package com.izforge.izpack.util.config.base;
 
 import java.io.*;
 import java.net.URL;
-import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 
 import com.izforge.izpack.util.config.base.spi.IniFormatter;
 import com.izforge.izpack.util.config.base.spi.IniHandler;
 import com.izforge.izpack.util.config.base.spi.RegBuilder;
 import com.izforge.izpack.util.config.base.spi.RegParser;
 
+
+/**
+ * A {@link MultiMap} representation of Windows registry keys, data, and values. Handles input
+ * directly from the registry, or from a file containing INI-like Registry Editor data. 
+ * Can also be used to create new keys and stores changes to the registry or a file. 
+ *
+ * @author Ivan SZKIBA
+ */
 public class Reg extends BasicRegistry implements Registry, Persistable, Configurable
 {
 	private static final long serialVersionUID = -5050673095845660030L;
+    private static final Logger logger = Logger.getLogger(Reg.class.getName());
 	protected static final String DEFAULT_SUFFIX = ".reg";
     protected static final String TMP_PREFIX = "reg-";
     private static final int STDERR_BUFF_SIZE = 8192;
@@ -60,25 +69,41 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
     }
 
     /**
-     * Read the specified registry key. Now deprecated; calls 
-     * {@link #Reg(String, boolean) Reg(registryKey, false)}, to retain legacy behaviour
-     * (fails if key not found). 
+     * <p>Initialise a {@code Reg} object and import the specified Windows registry key.
+     * The {@code Reg} object will be empty if the key is not found.</p> 
      * 
-     * @param registryKey
-     * @throws IOException
+     * @param registryKey the name of the registry key to import
+     * @throws IOException in the event of any error reading the registry
      */
-    @Deprecated
     public Reg(String registryKey) throws IOException
     {
         this(registryKey, false);
     }
-    
+
+    /**
+     * <p>Initialise a {@code Reg} object and import the specified Windows registry key.
+     * Optionally adds the key if not found.</p> 
+     * 
+     * @param registryKey the name of the registry key to import
+     * @param create pass {@code true} to add the key if it does not exist in the registry
+     * (note that the new key is still not actually created in the registry until calling
+     * {@link #store}) 
+     * @throws IOException in the event of any error reading the registry
+     */
     public Reg(String registryKey, boolean create) throws IOException
     {
         this();
         read(registryKey, create);
     }
 
+    /**
+     * <p>Initialise a {@code Reg} object and import the Windows registry data stored in the 
+     * specified file.</p>
+     * 
+     * @param input the file containing the Registry Editor data
+     * @throws IOException in the event of any error reading the file
+     * @throws InvalidFileFormatException if the file is not a valid Registry Editor file 
+     */
     public Reg(File input) throws IOException, InvalidFileFormatException
     {
         this();
@@ -86,18 +111,44 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         load();
     }
 
+    /**
+     * <p>Initialise a {@code Reg} object and import the Windows registry data stored in the 
+     * file at the specified URL.</p>
+     * 
+     * @param input the URL to the file containing the Registry Editor data
+     * @throws IOException in the event of any error reading the file
+     * @throws InvalidFileFormatException if the file is not a valid Registry Editor file 
+     */
     public Reg(URL input) throws IOException, InvalidFileFormatException
     {
         this();
         load(input);
     }
 
+    /**
+     * <p>Initialise a {@code Reg} object and import the Windows registry data from the 
+     * specified stream.</p>
+     * 
+     * @param input the stream containing the Registry Editor data
+     * @throws IOException in the event of any error reading the stream
+     * @throws InvalidFileFormatException if the stream does not contain valid Registry 
+     * Editor data 
+     */
     public Reg(InputStream input) throws IOException, InvalidFileFormatException
     {
         this();
         load(input);
     }
 
+    /**
+     * <p>Initialise a {@code Reg} object and import the Windows registry data from the 
+     * specified reader.</p>
+     * 
+     * @param input the reader containing the Registry Editor data
+     * @throws IOException in the event of any error reading from the reader
+     * @throws InvalidFileFormatException if the reader does not contain valid Registry 
+     * Editor data 
+     */
     public Reg(Reader input) throws IOException, InvalidFileFormatException
     {
         this();
@@ -188,8 +239,27 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
         load(input.toURI().toURL());
     }
     
-    /** TODO: CHECK ON CALLERS TO DECIDE WHETHER OR NOT TO USE THIS NEW CODE
+    /**
+     * <p>Import the specified registry key. Does nothing if key not found.</p>
+     * 
+     * @param registryKey the name of the registry key to import
+     * @throws IOException in the event of any error reading the registry
+     */
     public void read(String registryKey) throws IOException
+    {
+        read(registryKey, false);
+    }
+    
+    /**
+     * <p>Import the specified registry key. Optionally, add the key if it doesn't exist.</p>
+     * 
+     * @param registryKey the name of the registry key to import
+     * @param create pass {@code true} to add the key if it does not exist in the registry
+     * (note that the new key is still not actually created in the registry until calling
+     * {@link #store})
+     * @throws IOException in the event of any error reading the registry
+     */
+    public void read(String registryKey, boolean create) throws IOException
     {
         File tmp = createTempFile();
 
@@ -198,34 +268,12 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
             regExport(registryKey, tmp);
             if( tmp.exists() ) {
             	load(tmp);
-            } // otherwise, it didn't find the key
-        }
-        finally
-        {
-            tmp.delete();
-        }
-    }
-	*/
-
-    public void read(String registryKey, boolean create) throws IOException
-    {
-        File tmp = createTempFilename();
-
-        try
-        {
-            regExport(registryKey, tmp);
-            load(tmp);
-        }
-        catch (IOException ioe)
-        {
-        	if (create && ioe.getCause() instanceof ExecutionException)
-        	{
-                add(registryKey);
-        	}
-        	else
-        	{
-        		throw ioe;
-        	}
+            } else {
+                if ( create ) {
+                    add(registryKey);
+                    logger.info("Adding new key " + registryKey);
+                }
+            }
         }
         finally
         {
@@ -324,8 +372,9 @@ public class Reg extends BasicRegistry implements Registry, Persistable, Configu
                 char[] buff = new char[STDERR_BUFF_SIZE];
                 int n = errStream.read(buff);
                 
-                final String msg = new String(buff, 0, n).trim();
-                throw new IOException(new ExecutionException(msg){});
+                final String error = new String(buff, 0, n).trim();
+                logger.warning(error + " - " + args[4]);
+                //throw new IOException(new ExecutionException(error){});
             }
         }
         catch (InterruptedException x)
