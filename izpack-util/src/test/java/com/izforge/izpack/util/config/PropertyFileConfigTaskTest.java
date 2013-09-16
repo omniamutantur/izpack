@@ -32,7 +32,10 @@ import org.junit.Test;
 
 import com.izforge.izpack.util.FileUtil;
 import com.izforge.izpack.util.config.MultiMapConfigEntry.LookupType;
+import com.izforge.izpack.util.config.MultiMapConfigEntry.Operation;
 import com.izforge.izpack.util.config.base.MultiMap;
+import com.izforge.izpack.util.file.types.FileSet;
+import com.izforge.izpack.util.file.types.PatternSet.NameEntry;
 
 public class PropertyFileConfigTaskTest {
 	
@@ -92,7 +95,7 @@ public class PropertyFileConfigTaskTest {
 	
 	private void verifyProperty(MultiMap<String, String> config, String name, String value)
 	{
-		assertNotNull(config.get(name));
+		assertNotNull("Property " + name + " should exist!", config.get(name));
 		assertEquals(value, config.get(name));
 	}
 
@@ -239,5 +242,55 @@ public class PropertyFileConfigTaskTest {
 		task.insertEntry(entry1, config);
 		verifyTestProps(config);
 		verifyProperty(config, "property2a", "value2a");
+	}
+	
+	@Test
+	public void testExecute_KeepEntry() throws Exception
+	{
+	    task.setSrcFile(testProps);
+	    task.setFile(testNewProps);
+	    File output = File.createTempFile("patched", ".properties");
+	    output.deleteOnExit();
+	    task.setTargetFile(output);
+        task.setPatchPreserveEntries(false);
+        task.setPatchPreserveValues(false);
+        task.setOverwrite(true);
+        
+        MultiMapConfigEntry entry1 = new MultiMapConfigEntry();
+        entry1.setKey("property2");
+        entry1.setOperation(Operation.KEEP);
+        task.addEntry(entry1);
+        task.execute();
+        
+        MultiMap<String, String> patchConfig1 = task.readFromFile(output);
+        verifyProperty(patchConfig1, "property2", "value2");	        
+	}
+	
+	@Test
+	public void testExecute_Fileset() throws Exception
+	{
+	    FileSet srcFiles = new FileSet();
+	    srcFiles.setDir(new File(PropertyFileConfigTaskTest.class.getResource("testFrom").getFile()));
+	    srcFiles.setIncludes("*.properties");
+	    srcFiles.setExcludes("test3*");
+	    task.addFileSet(srcFiles);
+	    task.setToDir(new File(PropertyFileConfigTaskTest.class.getResource("testTo").getFile()));
+	    task.setPatchPreserveEntries(true);
+	    task.setPatchPreserveValues(true);
+	    task.setOverwrite(true);
+	    task.execute();
+	    
+	    MultiMap<String, String> patchConfig1 = task.readFromFile(new File(PropertyFileConfigTaskTest.class.getResource("testTo/test1.properties").getFile()));
+	    verifyProperty(patchConfig1, "1property1", "1value1");
+	    verifyProperty(patchConfig1, "1propertyX", "1valueX");
+        verifyProperty(patchConfig1, "1propertyZ", "1valueZ");
+        MultiMap<String, String> patchConfig2 = task.readFromFile(new File(PropertyFileConfigTaskTest.class.getResource("testTo/test2.properties").getFile()));
+        verifyProperty(patchConfig2, "2property1", "2value1");
+        verifyProperty(patchConfig2, "2propertyY", "2valueY");
+        verifyProperty(patchConfig2, "2propertyZ", "2valueZ");        
+        MultiMap<String, String> patchConfig3 = task.readFromFile(new File(PropertyFileConfigTaskTest.class.getResource("testTo/test3.properties").getFile()));
+        verifyProperty(patchConfig3, "3property1", "3value1a");
+        assertNull("3propertyY should not exist", patchConfig3.get("3propertyY"));
+        verifyProperty(patchConfig3, "3propertyZ", "3valueZ");        
 	}
 }
