@@ -64,21 +64,19 @@ public class ConfigFileTaskTest
 		tryValidation(true, "Unexpected validation fail (srcFile set to same as toFile)");
 		assertNull("srcFile should be null when equal to toFile", task.srcFile);
 		
-		//test invalid combination of !forceOverwrite and !create
-		task.setOverwrite(false);
-		task.setCreate(false);
-		tryValidation(false, "Expected validation to fail when overwrite and create are false");
-
+		
 		//test valid combinations of forceOverwrite and/or create
-		task.setOverwrite(true);
-		task.setCreate(true);
-		tryValidation(true, "Unexpected validation fail (overwrite and create are true)");
+		tryValidation(true, "Unexpected validation fail (overwrite and create should be true by default)");
 		task.setOverwrite(true);
 		task.setCreate(false);
-		tryValidation(true, "Unexpected validation fail (overwrite is true, create is false)");
+		tryValidation(true, "Unexpected validation fail (overwrite should default to true, create is false)");
 		task.setOverwrite(false);
 		task.setCreate(true);
-		tryValidation(true, "Unexpected validation fail (overwrite is false, create is true)");
+		tryValidation(true, "Unexpected validation fail (overwrite is false, create is true)");		
+		//test invalid combination of !forceOverwrite and !create
+        task.setCreate(false);
+        tryValidation(false, "Expected validation to fail when overwrite and create are false");
+
 	}
 	
 	/* NON-JAVADOC

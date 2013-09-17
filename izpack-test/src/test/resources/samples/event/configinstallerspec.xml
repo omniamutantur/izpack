@@ -8,7 +8,7 @@
   		<configurables>
 			<propertyfile todir="${INSTALL_PATH}/configPatch" 
 	                  	  keepOldKeys="false" keepOldValues="true" 
-	        			  cleanup="true" overwrite="true">
+	        			  cleanup="true">
 		        <fileset dir="${INSTALL_PATH}/configSrc">
 		            <include name="*.properties"/>
 		            <exclude name="test3.properties"/>
@@ -17,7 +17,7 @@
 	        <propertyfile fromfile="${INSTALL_PATH}/configSrc/test3.properties"
 	        	          tofile="${INSTALL_PATH}/configPatch/test3.properties"
 	                	  keepOldKeys="false" keepOldValues="false"
-					      cleanup="true" overwrite="true">
+					      cleanup="true">
 	          	<entry key="3property2" operation="keep"/>
 	        </propertyfile>		
   		</configurables>

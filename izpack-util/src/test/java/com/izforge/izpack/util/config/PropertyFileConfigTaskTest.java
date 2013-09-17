@@ -259,7 +259,6 @@ public class PropertyFileConfigTaskTest {
 	    task.setTargetFile(output);
         task.setPatchPreserveEntries(false);
         task.setPatchPreserveValues(false);
-        task.setOverwrite(true);
         
         MultiMapConfigEntry entry1 = new MultiMapConfigEntry();
         entry1.setKey("property2");
@@ -288,7 +287,6 @@ public class PropertyFileConfigTaskTest {
 	    task.setToDir(new File(PropertyFileConfigTaskTest.class.getResource("testTo").getFile()));
 	    task.setPatchPreserveEntries(true);
 	    task.setPatchPreserveValues(true);
-	    task.setOverwrite(true);
 	    task.execute();
 	    
 	    MultiMap<String, String> patchConfig1 = task.readFromFile(new File(PropertyFileConfigTaskTest.class.getResource("testTo/test1.properties").getFile()));

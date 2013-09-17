@@ -44,6 +44,12 @@ public abstract class ConfigFileTask extends FileCopyTask implements Configurabl
     
     private List<File> cleanFiles = new ArrayList<File>();
     private List<File> deleteFiles = new ArrayList<File>();
+    
+    public ConfigFileTask()
+    {
+        super();
+        forceOverwrite = true;
+    }
 
     /**
      * Set location of the configuration file to be updated; required.
