@@ -35,7 +35,6 @@ import com.izforge.izpack.util.config.MultiMapConfigEntry.LookupType;
 import com.izforge.izpack.util.config.MultiMapConfigEntry.Operation;
 import com.izforge.izpack.util.config.base.MultiMap;
 import com.izforge.izpack.util.file.types.FileSet;
-import com.izforge.izpack.util.file.types.PatternSet.NameEntry;
 
 public class PropertyFileConfigTaskTest {
 	
@@ -244,6 +243,12 @@ public class PropertyFileConfigTaskTest {
 		verifyProperty(config, "property2a", "value2a");
 	}
 	
+    /**
+     * Skeleton functional test for batch patching, to test for an issue reported on the dev
+     * mailing list.
+     * 
+     * @throws Exception for any error
+     */
 	@Test
 	public void testExecute_KeepEntry() throws Exception
 	{
@@ -266,6 +271,12 @@ public class PropertyFileConfigTaskTest {
         verifyProperty(patchConfig1, "property2", "value2");	        
 	}
 	
+	/**
+	 * Skeleton functional test for batch patching, to test for an issue reported on the dev
+	 * mailing list.
+	 * 
+	 * @throws Exception for any error
+	 */
 	@Test
 	public void testExecute_Fileset() throws Exception
 	{

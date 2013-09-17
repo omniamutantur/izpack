@@ -3,7 +3,7 @@
                              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                              xmlns:izpack="http://izpack.org/schema/configurationactions"
                              xsi:schemaLocation="http://izpack.org/schema/configurationactions http://izpack.org/schema/5.0/izpack-configurationactions-5.0.xsd">
-  <pack name="Config Test">
+  <pack name="Base">
   	<configurationaction order="afterpack">
   		<configurables>
 			<propertyfile todir="${INSTALL_PATH}/configPatch" 

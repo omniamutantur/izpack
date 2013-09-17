@@ -25,25 +25,25 @@ package com.izforge.izpack.integration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
-import org.fest.swing.fixture.FrameFixture;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.izforge.izpack.api.GuiId;
 import com.izforge.izpack.api.data.AutomatedInstallData;
-import com.izforge.izpack.compiler.container.TestInstallationContainer;
+import com.izforge.izpack.api.data.InstallData;
+import com.izforge.izpack.compiler.container.TestConsoleInstallationContainer;
 import com.izforge.izpack.event.ConfigurationInstallerListener;
+import com.izforge.izpack.installer.automation.AutomatedInstaller;
 import com.izforge.izpack.installer.event.InstallerListeners;
-import com.izforge.izpack.installer.gui.InstallerController;
-import com.izforge.izpack.installer.gui.InstallerFrame;
 import com.izforge.izpack.test.Container;
 import com.izforge.izpack.test.InstallFile;
 import com.izforge.izpack.test.junit.PicoRunner;
+import com.izforge.izpack.util.FileUtil;
 import com.izforge.izpack.util.config.ConfigFileTask;
 import com.izforge.izpack.util.config.PropertyFileConfigTask;
 import com.izforge.izpack.util.config.base.MultiMap;
@@ -56,7 +56,7 @@ import com.izforge.izpack.util.config.base.MultiMap;
  * @author Daniel Abson
  */
 @RunWith(PicoRunner.class)
-@Container(TestInstallationContainer.class)
+@Container(TestConsoleInstallationContainer.class)
 public class ConfigurationInstallerListenerTest extends AbstractInstallationTest
 {
 
@@ -65,20 +65,11 @@ public class ConfigurationInstallerListenerTest extends AbstractInstallationTest
      */
     private final InstallerListeners listeners;
 
-    /**
-     * The installer frame.
-     */
-    private final InstallerFrame frame;
 
     /**
-     * The installer controller.
+     * The installer.
      */
-    private final InstallerController controller;
-
-    /**
-     * Frame fixture.
-     */
-    private FrameFixture frameFixture;
+    private final AutomatedInstaller installer;
 
 
     /**
@@ -86,28 +77,13 @@ public class ConfigurationInstallerListenerTest extends AbstractInstallationTest
      *
      * @param listeners   the installer listeners
      * @param installData the install data
-     * @param frame       the installer frame
-     * @param controller  the installer controller
+     * @param installer   the installer
      */
-    public ConfigurationInstallerListenerTest(InstallerListeners listeners, AutomatedInstallData installData, InstallerFrame frame,
-                                 InstallerController controller)
+    public ConfigurationInstallerListenerTest(InstallerListeners listeners, AutomatedInstallData installData, AutomatedInstaller installer)
     {
         super(installData);
         this.listeners = listeners;
-        this.frame = frame;
-        this.controller = controller;
-    }
-
-    /**
-     * Tears down the test case.
-     */
-    @After
-    public void tearDown()
-    {
-        if (frameFixture != null)
-        {
-            frameFixture.cleanUp();
-        }
+        this.installer = installer;
     }
 
     /**
@@ -119,14 +95,19 @@ public class ConfigurationInstallerListenerTest extends AbstractInstallationTest
     @InstallFile("samples/event/configinstaller.xml")
     public void testConfigurationInstallerListener() throws Exception
     {
-        frameFixture = HelperTestMethod.prepareFrameFixture(frame, controller);
-        frameFixture.button(GuiId.BUTTON_NEXT.id).click();
-        frameFixture.requireVisible();
+        InstallData installData = getInstallData();
+        
+        URL url = getClass().getResource("/samples/event/auto.xml");
+        assertNotNull(url);
+        String config = FileUtil.convertUrlToFilePath(url);
+        installer.init(config, null);
+        installer.doInstall();
 
-        HelperTestMethod.waitAndCheckInstallation(getInstallData());
+        // verify the installation thinks it was successful
+        assertTrue(installData.isInstallSuccess());
 
         assertEquals(1, listeners.size());
-        String installPath = getInstallData().getInstallPath();
+        String installPath = installData.getInstallPath();
         TestPropertyFileConfigTask task = new TestPropertyFileConfigTask();
         MultiMap<String, String> patchConfig1 = task.readFromFile(new File(installPath + "/configPatch/test1.properties"));
         verifyPropertyValue(patchConfig1, "1property1", "1value1");

@@ -35,7 +35,7 @@
     </panels>
     
     <packs>
-        <pack name="Config Test" required="yes">
+        <pack name="Base" required="yes">
             <description>All files required for testing config patching</description>
             <fileset dir="" targetdir="$INSTALL_PATH">
                 <include name="configSrc/*.*"/>
