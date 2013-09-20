@@ -61,6 +61,7 @@
     <str id="uninstaller.warning" txt="This will remove the installed application!"/>
     <str id="uninstaller.destroytarget" txt=" Force the deletion of "/>
     <str id="uninstaller.uninstall" txt="Uninstall"/>
+    <str id="uninstaller.fail" txt="Uninstaller has failed!"/>
 
     <!-- The strings for the 'official' IzPack plugins -->
     <!-- HelloPanel strings -->
@@ -285,6 +286,9 @@ file we looked for -->
          txt="This product is already installed on this computer under the path "/>
     <str id="CheckedHelloPanel.productAlreadyExist1" txt="Are you sure you want to install another entity?"/>
     <str id="CheckedHelloPanel.infoOverUninstallKey" txt="The uninstall key will be named: "/>
+    <str id="CheckedHelloPanel.productPathNotFound" txt="&lt;not found&gt;"/>
+    <str id="CheckedHelloPanel.removePreviousVersion" txt="Do you want to remove the previous installation before continuing?"/>
+    <str id="CheckedHelloPanel.manualUninstall" txt="Try to run the uninstaller manually."/>
 
     <!-- ConsolePrompt strings -->
     <str id="ConsolePrompt.okCancel" txt="Enter O for OK, C to Cancel: "/>

@@ -26,6 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -72,9 +74,93 @@ public class ProcessHelper
         }
         return exe.getAbsolutePath();
     }
+    
+    /**
+     * Converts a complete command line into a list. Handles quoted and unquoted command
+     * line elements in any combination.
+     * 
+     * @param commandLine a complete command line
+     * @return the command elements in a list
+     */
+    public static List<String> splitCommandLine(String commandLine)
+    {
+        StringReader in = new StringReader(commandLine.trim());
+        int c;
+        char delim = ' ';
+        boolean readingCommand = false;
+        StringBuffer cache = new StringBuffer();
+        List<String> command = new ArrayList<String>();
+        try
+        {
+            while ( (c = in.read()) != -1)
+            {
+                if (readingCommand)
+                {
+                    if ((char)c == delim) //end of command element, add to list
+                    {
+                        readingCommand = false;
+                        if (cache.length() > 0) 
+                        {
+                            command.add(cache.toString().trim());
+                            cache = new StringBuffer();
+                        }
+                    }
+                    else //still reading command, append to buffer
+                    {
+                        cache.append((char)c);
+                    }
+                }
+                else //looking for start of next element
+                {
+                    if ((char)c == '"')
+                    {
+                        delim = '"';
+                        readingCommand = true;
+                    }
+                    else if (c != ' ') //ignore whitespace between elements
+                    {
+                        delim = ' ';
+                        cache.append((char)c);
+                        readingCommand = true;
+                    }
+                }
+            }
+            if ( cache.length() > 0 ) //add final non-quoted argument
+            {
+                command.add(cache.toString().trim());
+            }
+        }
+        catch (IOException ioe)
+        {
+            throw new RuntimeException("Unexpected error processing command " + commandLine, ioe);
+        }
+        finally
+        {
+            in.close();
+        }
+        return command;
+    }
+    
+    /**
+     * Executes the specified command in a new process. See {@link #exec(String...)}.
+     * 
+     * @param commandLine the complete command line to execute
+     * @return the process
+     * @throws IOException if an I/O error occurs
+     */
+    public static Process exec(String commandLine) throws IOException
+    {
+        return exec(splitCommandLine(commandLine));
+    }
 
     /**
-     * Executes the specified command in a new process.
+     * <p>Executes the specified command in a new process. This is a convenience method to
+     * configure an instance of {@link ProcessBuilder} to generate the process.</p>
+     * 
+     * <p>The resulting process writes all standard error messages to the 
+     * standard out stream (see {@link ProcessBuilder#redirectErrorStream(boolean)}), and the 
+     * standard input stream cannot be written to (this method closes the output stream
+     * {@link Process#getOutputStream()}).</p>
      *
      * @param command the command to execute
      * @return the process
@@ -94,7 +180,7 @@ public class ProcessHelper
     }
 
     /**
-     * Executes the specified command in a new process.
+     * Executes the specified command in a new process. See {@link #exec(String...)}.
      *
      * @param command the command to execute
      * @return the process

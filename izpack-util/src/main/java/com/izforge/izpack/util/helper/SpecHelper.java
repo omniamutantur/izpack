@@ -46,7 +46,7 @@ public class SpecHelper
     public static final String YES = "yes";
 
     public static final String NO = "no";
-
+    
     private String specFilename;
 
     private IXMLElement spec;
@@ -370,5 +370,24 @@ public class SpecHelper
                     + "'.");
         }
         return (attr);
+    }
+    
+    /**
+     * Get the boolean value of an XML schema attribute value of type {@code xs:boolean}.
+     * 
+     * @param value the XML schema attribute value (accepts {@code null})
+     * @return false, unless {@code value} is {@code "true"} or {@code "1"}
+     */
+    public static boolean getXSBoolean(String value)
+    {
+        if (value != null && 
+                (value.equalsIgnoreCase("true") ||
+                 value.equalsIgnoreCase("1"))
+           )
+        {
+            return true;
+        }
+        
+        return false;
     }
 }
