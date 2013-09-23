@@ -78,24 +78,69 @@ public class RegistryHelper
 
     /**
      * Returns whether the handled application is already registered or not. The validation will be
-     * made only on systems which contains a registry (Windows).
+     * made only on systems which contains a registry (Windows). Peforms a strict match for this
+     * specific application name and version.
      *
      * @return {@code true} if the application is registered
      * @throws NativeLibException for any native library error
      */
     public boolean isRegistered() throws NativeLibException
     {
+        return isRegistered(false);
+    }
+    
+    /**
+     * Returns whether the handled application is already registered or not. The validation will be
+     * made only on systems which contains a registry (Windows). If {@code fuzzyMatch} is true, the
+     * application version number is ignored; otherwise, performs a strict match for this
+     * specific application name and version.
+     *
+     * @param  {@code true} to match only the application name in the registry
+     * @return {@code true} if the application is registered
+     * @throws NativeLibException for any native library error
+     */
+    public boolean isRegistered(boolean fuzzyMatch) throws NativeLibException
+    {
         boolean result = false;
         if (handler != null)
         {
-            String uninstallName = getUninstallName();
-            if (uninstallName != null)
+            if (fuzzyMatch)
             {
-                String keyName = RegistryHandler.UNINSTALL_ROOT + uninstallName;
-                if (exists(RegistryHandler.HKEY_LOCAL_MACHINE, keyName, UNINSTALL_STRING)
-                        || exists(RegistryHandler.HKEY_CURRENT_USER, keyName, UNINSTALL_STRING))
+                String appName = installData.getVariables().get("APP_NAME");
+                String uninstallStub = appName;
+                String[] subkeys = getSubkeys(RegistryHandler.HKEY_LOCAL_MACHINE, RegistryHandler.UNINSTALL_ROOT);
+                for ( String subkey : subkeys )
                 {
-                    result = true;
+                    if ( subkey.startsWith(uninstallStub) )
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+                if ( !result )
+                {
+                    subkeys = getSubkeys(RegistryHandler.HKEY_CURRENT_USER, RegistryHandler.UNINSTALL_ROOT);
+                    for ( String subkey : subkeys )
+                    {
+                        if ( subkey.startsWith(uninstallStub) )
+                        {
+                            result = true;
+                            break;
+                        }
+                    }   
+                }
+            }
+            else
+            {
+                String uninstallName = getUninstallName();
+                if (uninstallName != null)
+                {
+                    String keyName = RegistryHandler.UNINSTALL_ROOT + uninstallName;
+                    if (exists(RegistryHandler.HKEY_LOCAL_MACHINE, keyName, UNINSTALL_STRING)
+                            || exists(RegistryHandler.HKEY_CURRENT_USER, keyName, UNINSTALL_STRING))
+                    {
+                        result = true;
+                    }
                 }
             }
         }
@@ -234,9 +279,9 @@ public class RegistryHelper
     }
 
     /**
-     * Determines whether a given value under a given key exists.
-     * <p/>
-     * NOTE: this operation has the side effect that the registry root changes.
+     * <p>Determines whether a given value under a given key exists.</p>
+     * 
+     * <p>NOTE: this operation has the side effect that the registry root changes.</p>
      *
      * @param root  the root of the registry access.
      * @param key   the key name
@@ -248,5 +293,21 @@ public class RegistryHelper
     {
         handler.setRoot(root);
         return handler.valueExist(key, value);
+    }
+    
+    /**
+     * <p>Returns all subkeys under a given key.</p>
+     * 
+     * <p>NOTE: this operation has the side effect that the registry root changes.</p>
+     *
+     * @param root  the root of the registry access.
+     * @param key   the parent key name
+     * @return {@code true} it exists, otherwise {@code false}
+     * @throws NativeLibException
+     */
+    protected String[] getSubkeys(int root, String key) throws NativeLibException
+    {
+        handler.setRoot(root);
+        return handler.getSubkeys(key);
     }
 }

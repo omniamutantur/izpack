@@ -76,6 +76,11 @@ public class CheckedHelloPanel extends HelloPanel
      * Flag to use the install path of an existing entity.
      */
     protected boolean replaceInstallPath = true;
+    /**
+     * Flag to specify matching behaviour when looking for existing installations.
+     */
+    protected boolean fuzzyMatch = false;    
+    
 
     /**
      * The registry helper.
@@ -95,6 +100,10 @@ public class CheckedHelloPanel extends HelloPanel
      * Config parameter to use the install path of an existing installation.
      */
     public static final String EXISTING_REPLACEPATH = "keepexistinginstallpath";
+    /**
+     * Config parameter to match only the application name when trying to find an existing installation.
+     */
+    public static final String EXISTING_FUZZYMATCH = "fuzzymatch";
 
     
     /**
@@ -112,10 +121,11 @@ public class CheckedHelloPanel extends HelloPanel
                              RegistryDefaultHandler handler, Log log) throws Exception
     {
         super(panel, parent, installData, resources, log);
-        registryHelper = new RegistryHelper(handler, installData);
-        abortInstallation = isRegistered();
         runUninstaller = getXSBoolean(panel.getConfiguration(EXISTING_UNINSTALL));
         replaceInstallPath = getXSBoolean(panel.getConfiguration(EXISTING_REPLACEPATH));
+        fuzzyMatch = getXSBoolean(panel.getConfiguration(EXISTING_FUZZYMATCH));
+        registryHelper = new RegistryHelper(handler, installData);
+        abortInstallation = isRegistered();
     }
 
     /**
@@ -175,7 +185,7 @@ public class CheckedHelloPanel extends HelloPanel
      */
     protected boolean isRegistered() throws Exception
     {
-        if ( registryHelper.isRegistered() )
+        if ( registryHelper.isRegistered(fuzzyMatch) )
         {
             installationPath = registryHelper.getInstallationPath();
             uninstallCommand = registryHelper.getUninstallCommand();
@@ -215,38 +225,44 @@ public class CheckedHelloPanel extends HelloPanel
             }
 
             try
-            {                
-                if ( shouldRunUninstaller() )
-                {        
-                    if ( executeUninstaller() )
-                    {
-                        abortInstallation = false;
-                        parent.unlockNextButton();                        
-                    }
-                    else
-                    {
-                        emitError("installer.error", getString("uninstaller.fail") + " " + getString("CheckedHelloPanel.manualUninstall"));
+            {        
+                if ( runUninstaller )
+                {
+                    if ( shouldRunUninstaller() )
+                    {        
+                        if ( executeUninstaller() )
+                        {
+                            abortInstallation = false;
+                            parent.unlockNextButton();                        
+                        }
+                        else
+                        {
+                            emitError("installer.error", getString("uninstaller.fail") + " " + getString("CheckedHelloPanel.manualUninstall"));
+                        }
                     }
                 }
-                else if (multipleInstall())
+                else if ( multipleInstall() )
                 {
                     setUniqueUninstallKey();
                     abortInstallation = false;
                     parent.unlockNextButton();
                 }
-                else
-                {
-                    installData.getInfo().setUninstallerPath(null);
-                    installData.getInfo().setUninstallerName(null);
-                    installData.getInfo().setUninstallerCondition("uninstaller.nowrite");
-                }
+                
             }
             catch (Exception exception)
             {
                 logger.log(Level.WARNING, exception.getMessage(), exception);
             }
         }
-        installData.setVariable("UNINSTALL_NAME", registryHelper.getUninstallName());
+        
+        if( abortInstallation )
+        {
+            installData.getInfo().setUninstallerCondition("uninstaller.nowrite");
+        }
+        else
+        {
+            installData.setVariable("UNINSTALL_NAME", registryHelper.getUninstallName());
+        }
     }
     
     protected boolean executeUninstaller()
